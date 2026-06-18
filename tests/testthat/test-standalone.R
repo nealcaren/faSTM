@@ -161,6 +161,15 @@ test_that("stm-compat aliases and new plot types work", {
                        cov.value1 = "Republican", cov.value2 = "Democratic"), "ggplot")
 })
 
+test_that("init.beta starts the fit from a supplied initialization", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  B <- exp(f$fit$beta$logbeta[[1]])              # a valid K x V topic-word matrix
+  m0 <- stm(f$corpus, K = 6, init.beta = B, max.em.its = 0, seed = 1, verbose = FALSE)
+  # 0 EM iterations from B returns B
+  expect_equal(exp(m0$beta$logbeta[[1]]), B, tolerance = 1e-8)
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)

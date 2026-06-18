@@ -56,6 +56,7 @@ fn fit_stm(
     content_groups: Nullable<Vec<i32>>,
     num_groups: i32,
     init_spectral: bool,
+    init_beta: Nullable<Vec<f64>>,
     gamma_l1_alpha: Nullable<f64>,
     diagonal: bool,
     seed: i32,
@@ -97,6 +98,17 @@ fn fit_stm(
         Nullable::Null => GammaPrior::Pooled,
     };
 
+    // --- optional externally-supplied base beta (K*V row-major) for a
+    //     "replicate the original" fit started from a given init (topica #234/#235)
+    let init_beta_owned: Option<Vec<Vec<f64>>> = match init_beta {
+        Nullable::NotNull(flat) => {
+            let v = num_types as usize;
+            Some(flat.chunks(v).map(|r| r.to_vec()).collect())
+        }
+        Nullable::Null => None,
+    };
+    let init_beta_ref: Option<&[Vec<f64>]> = init_beta_owned.as_deref();
+
     // Mirror topica's STM rng (parity TODO: confirm vs src/python.rs).
     let mut rng = ChaCha8Rng::seed_from_u64(seed as u64);
 
@@ -112,6 +124,7 @@ fn fit_stm(
                 prevalence_ref,
                 content_ref,
                 init_spectral,
+                init_beta_ref,
                 gamma_prior,
                 /* keep_nu = */ true, // need ν for the method-of-composition posterior
                 diagonal,

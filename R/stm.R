@@ -22,6 +22,10 @@
 #' @param emtol Relative-bound convergence tolerance.
 #' @param init.type Topic initialization; `"Spectral"` (stm's default) or
 #'   `"Random"`.
+#' @param init.beta Optional K x V topic-word probability matrix to start the fit
+#'   from a given initialization (overrides `init.type`). Supplying R `stm`'s
+#'   exact spectral beta here reproduces that run — a guaranteed
+#'   "replicate the original" mode (topica #234/#235).
 #' @param gamma.prior Prevalence-coefficient prior: `"Pooled"` (ridge, stm
 #'   default) or `"L1"`.
 #' @param sigma.prior Shrinkage applied to the topic covariance off-diagonal.
@@ -41,6 +45,7 @@ stm <- function(documents, vocab, K,
                 prevalence = NULL, content = NULL, data = NULL,
                 max.em.its = 500L, emtol = 1e-5,
                 init.type = c("Spectral", "Random"),
+                init.beta = NULL,
                 gamma.prior = c("Pooled", "L1"), gamma.l1.alpha = 1e-3,
                 sigma.prior = 0,
                 seed = 1L,
@@ -116,6 +121,7 @@ stm <- function(documents, vocab, K,
     content_groups = content_groups,
     num_groups     = num_groups,
     init_spectral  = identical(init.type, "Spectral"),
+    init_beta      = if (is.null(init.beta)) NULL else as.double(t(init.beta)),  # K*V row-major
     gamma_l1_alpha = if (gamma.prior == "L1") as.double(gamma.l1.alpha) else NULL,
     diagonal       = FALSE,
     seed           = as.integer(seed),

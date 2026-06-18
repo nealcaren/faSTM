@@ -26,7 +26,7 @@ NULL
 #' `inference`: "batch" -> `fit_ctm` (parity-validated). "svi" -> `fit_ctm_svi`
 #' once topica #231 PR B (STM-SVI) is in the pinned revision; the R layer gates
 #' the prevalence/content + svi combination until then.
-fit_stm <- function(docs_flat, doc_lens, num_types, num_topics, em_iters, em_tol, sigma_shrink, prevalence, num_features, content_groups, num_groups, init_spectral, gamma_l1_alpha, diagonal, seed, inference, batch_size, tau, kappa, num_threads) .Call(wrap__fit_stm, docs_flat, doc_lens, num_types, num_topics, em_iters, em_tol, sigma_shrink, prevalence, num_features, content_groups, num_groups, init_spectral, gamma_l1_alpha, diagonal, seed, inference, batch_size, tau, kappa, num_threads)
+fit_stm <- function(docs_flat, doc_lens, num_types, num_topics, em_iters, em_tol, sigma_shrink, prevalence, num_features, content_groups, num_groups, init_spectral, init_beta, gamma_l1_alpha, diagonal, seed, inference, batch_size, tau, kappa, num_threads) .Call(wrap__fit_stm, docs_flat, doc_lens, num_types, num_topics, em_iters, em_tol, sigma_shrink, prevalence, num_features, content_groups, num_groups, init_spectral, init_beta, gamma_l1_alpha, diagonal, seed, inference, batch_size, tau, kappa, num_threads)
 
 #' Out-of-sample topic inference: for each new document, run the variational
 #' E-step against fixed globals (β, μ, Σ⁻¹) and return θ. Documents are passed
