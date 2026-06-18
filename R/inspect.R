@@ -55,12 +55,12 @@ label_topics <- function(model, n = 7L, frexweight = 0.5) {
 
 #' @export
 print.faSTM_labels <- function(x, ...) {
-  for (k in x$topics) {
-    cat(sprintf("Topic %d:\n", k))
-    cat("  Highest Prob:", paste(x$prob[k, ], collapse = ", "), "\n")
-    cat("  FREX:        ", paste(x$frex[k, ], collapse = ", "), "\n")
-    cat("  Lift:        ", paste(x$lift[k, ], collapse = ", "), "\n")
-    cat("  Score:       ", paste(x$score[k, ], collapse = ", "), "\n")
+  for (i in seq_along(x$topics)) {
+    cat(sprintf("Topic %d:\n", x$topics[i]))
+    cat("  Highest Prob:", paste(x$prob[i, ], collapse = ", "), "\n")
+    cat("  FREX:        ", paste(x$frex[i, ], collapse = ", "), "\n")
+    cat("  Lift:        ", paste(x$lift[i, ], collapse = ", "), "\n")
+    cat("  Score:       ", paste(x$score[i, ], collapse = ", "), "\n")
   }
   invisible(x)
 }

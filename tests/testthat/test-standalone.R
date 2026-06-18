@@ -138,6 +138,29 @@ test_that("niche: ldac round-trips, multi_stm + permutation_test run", {
   expect_equal(dim(pt$null), c(2L, 5L))
 })
 
+test_that("stm-compat aliases and new plot types work", {
+  skip_if_not_built(); skip_if_not_installed("quanteda"); skip_if_not_installed("ggplot2")
+  f <- make_fit(6L)
+  # aliases accepting (documents, vocab)
+  sk <- searchK(f$corpus$documents, f$corpus$vocab, K = c(5L, 8L),
+                data = f$corpus$meta, prevalence = ~ Party, cores = 1L)
+  expect_s3_class(sk, "faSTM_searchk")
+  # labelTopics subset + findThoughts
+  lt <- labelTopics(f$fit, topics = c(1L, 3L), n = 4L)
+  expect_equal(nrow(lt$frex), 2L)
+  expect_no_error(print(lt))
+  # topicCorr + its plot, perspectives, plotModels
+  expect_s3_class(plot(topicCorr(f$fit)), "ggplot")
+  expect_s3_class(plot(f$fit, type = "perspectives", topics = c(1L, 3L)), "ggplot")
+  expect_s3_class(plot(f$fit, type = "hist"), "ggplot")
+  sel <- selectModel(f$corpus$documents, f$corpus$vocab, K = 6, N = 2, seed = 1)
+  expect_s3_class(plotModels(sel), "ggplot")
+  # estimateEffect via meta= + difference plot with stm-style cov.value args
+  eff <- estimateEffect(1:6 ~ Party, f$fit, meta = f$corpus$meta, nsims = 20L, seed = 1L)
+  expect_s3_class(plot(eff, "Party", method = "difference",
+                       cov.value1 = "Republican", cov.value2 = "Democratic"), "ggplot")
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)

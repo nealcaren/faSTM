@@ -18,10 +18,11 @@
 #'   `summary()` method, holding pooled coefficients and standard errors per
 #'   topic.
 #' @export
-estimateEffect <- function(formula, stmobj, metadata,
+estimateEffect <- function(formula, stmobj, metadata = meta,
                            uncertainty = c("Global", "None"),
-                           nsims = 100L, seed = NULL) {
+                           nsims = 100L, seed = NULL, meta = NULL) {
   stopifnot(inherits(stmobj, "faSTM"))
+  if (is.null(metadata)) stop("supply document metadata via `metadata=` (or `meta=`).", call. = FALSE)
   uncertainty <- match.arg(uncertainty)
 
   K <- ncol(stmobj$theta)
@@ -53,15 +54,17 @@ estimateEffect <- function(formula, stmobj, metadata,
 }
 
 #' @export
-summary.faSTM_effect <- function(object, ...) {
-  tabs <- lapply(object$coefficients, function(c) {
+summary.faSTM_effect <- function(object, topics = NULL, ...) {
+  coefs <- object$coefficients
+  if (!is.null(topics)) coefs <- coefs[paste0("topic", topics)]
+  tabs <- lapply(coefs, function(c) {
     tval <- c$est / c$se
     data.frame(Estimate = c$est, `Std. Error` = c$se,
                `t value` = tval,
                `Pr(>|t|)` = 2 * stats::pt(-abs(tval), df = c$df),
                row.names = object$terms, check.names = FALSE)
   })
-  names(tabs) <- names(object$coefficients)
+  names(tabs) <- names(coefs)
   structure(list(tables = tabs, formula = object$formula,
                  uncertainty = object$uncertainty, nsims = object$nsims),
             class = "summary.faSTM_effect")
