@@ -161,6 +161,21 @@ fn fit_stm(
         None => Nullable::Null,
     };
 
+    // SAGE κ decomposition (topica #237 / v0.24.1): background m (V), topic κ
+    // (K×V), covariate κ (G×V), interaction κ (K·G×V, topic*G+group). Flattened
+    // row-major; the R layer reshapes and builds stm's beta$kappa structure.
+    let (ck_m, ck_topic, ck_cov, ck_inter): (
+        Nullable<Vec<f64>>, Nullable<Vec<f64>>, Nullable<Vec<f64>>, Nullable<Vec<f64>>,
+    ) = match &model.content_kappa {
+        Some(ck) => (
+            Nullable::NotNull(ck.m.clone()),
+            Nullable::NotNull(ck.kappa_topic.iter().flatten().copied().collect()),
+            Nullable::NotNull(ck.kappa_cov.iter().flatten().copied().collect()),
+            Nullable::NotNull(ck.kappa_interaction.iter().flatten().copied().collect()),
+        ),
+        None => (Nullable::Null, Nullable::Null, Nullable::Null, Nullable::Null),
+    };
+
     list!(
         num_topics = k as i32,
         num_types = v as i32,
@@ -173,6 +188,10 @@ fn fit_stm(
         sigma = model.sigma,       // (K-1)^2 row-major
         gamma = gamma_flat,        // num_features*(K-1) row-major, or NULL
         content_beta = content_beta_flat, // G*K*V or NULL
+        kappa_m = ck_m,                    // V                (or NULL)
+        kappa_topic = ck_topic,            // K*V row-major    (or NULL)
+        kappa_cov = ck_cov,                // G*V row-major    (or NULL)
+        kappa_interaction = ck_inter,      // (K*G)*V row-major (or NULL)
         bound = model.bound,
         bound_history = model.bound_history,
         converged = model.converged

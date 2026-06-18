@@ -198,6 +198,22 @@ test_that("s() matches stm::s default df (spline coefficients agree)", {
   expect_equal(unclass(s(x)), unclass(stm::s(x)), check.attributes = FALSE)
 })
 
+test_that("content models carry stm-shaped SAGE kappa (topica >= 0.24.1)", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(4L)
+  fc <- stm(f$corpus, K = 4, content = ~ Party, data = f$corpus$meta, seed = 1, verbose = FALSE)
+  skip_if(is.null(fc$beta$kappa), "topica build predates SAGE kappa (#237 / v0.24.1)")
+  G <- length(fc$settings$covariates$yvarlevels)
+  expect_equal(length(fc$beta$kappa$params), 4L + G + 4L * G)   # K + G + K*G
+  expect_equal(length(fc$beta$kappa$m), length(fc$vocab))
+  expect_equal(fc$settings$dim$A, G)
+  skip_if_not_installed("stm")
+  sage <- stm::sageLabels(fc, n = 5)
+  expect_s3_class(sage, "sageLabels")
+  expect_equal(sage$K, 4)
+  expect_no_error(stm::labelTopics(fc, n = 5))
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)

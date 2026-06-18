@@ -17,11 +17,10 @@ STM's objective is non-convex and faSTM uses a different optimizer, so an
 independent fit lands in its own (valid, deterministic) optimum — different
 topics and numbering, not a relabeling of `stm`'s. For a guaranteed
 "replicate the original" run, pass `stm`'s own spectral β via
-`stm(..., init.beta = )`. A few `stm` features are also not yet ported (e.g.
-`toLDAvis`, `topicQuality`, `init.type = "LDA"/"Custom"`,
-`estimateEffect(uncertainty = "Local")`), and `stm`'s SAGE readers
-(`sageLabels`/`labelTopics`) do not work on faSTM **content** models — use
-`faSTM::sage_labels()` instead.
+`stm(..., init.beta = )`. A couple of `stm` options are not yet ported
+(`init.type = "LDA"`, `estimateEffect(uncertainty = "Local")`). Content (SAGE)
+models are fully stm-shaped — `stm::sageLabels()`/`labelTopics()` work on them —
+which requires `topica >= 0.24.1`.
 
 ```r
 library(quanteda)   # tokenization (faSTM reads quanteda/tidytext, doesn't reinvent it)
@@ -76,10 +75,11 @@ content, threads); the full inspection layer (labels/FREX/coherence/exclusivity/
 topic correlations, SAGE labels); honest `estimateEffect`; out-of-sample
 inference (`fit_new_documents`); model selection (`search_k`, `select_model`,
 `many_topics`); and a modern **ggplot2** plotting layer (topic summary, covariate
-effects with CIs, search-K diagnostics, topic-correlation network). Not yet
-ported: `toLDAvis`, `topicQuality`, `init.type = "LDA"/"Custom"`,
-`estimateEffect(uncertainty = "Local")`, stm-compatible SAGE readers on content
-fits. In progress: SVI for covariate models (topica#231).
+effects with CIs, search-K diagnostics, topic-correlation network); `toLDAvis`,
+`topicQuality`, and stm-compatible SAGE labels on content models (topica
+>= 0.24.1). Not yet ported: `init.type = "LDA"`,
+`estimateEffect(uncertainty = "Local")`. In progress: SVI for covariate models
+(topica#231).
 
 ## Install (beta)
 

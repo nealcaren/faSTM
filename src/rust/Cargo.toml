@@ -22,7 +22,9 @@ extendr-api = "0.7"
 # v0.24.0 has the faithful spectral recover() + `init_beta` warm-start (#234/#235)
 # that faSTM's binding requires. default-features = false keeps the NumPy-free,
 # no-JVM, no-pyo3 core only.
-topica = { git = "https://github.com/nealcaren/topica", tag = "v0.24.0", default-features = false }
+# DEV (content-kappa branch, pre-release): build against local topica sage-kappa-237
+topica = { path = "../../../topica", default-features = false }
+# topica = { git = "https://github.com/nealcaren/topica", tag = "v0.24.0", default-features = false }
 # Local dev override (uncomment to build against a working tree):
 # topica = { path = "../../../topica", default-features = false }
 

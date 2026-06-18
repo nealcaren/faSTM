@@ -50,6 +50,24 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
   ## lift labels); populate it so stm::labelTopics()$lift works on faSTM fits.
   if (!is.null(word_counts)) settings$dim$wcounts <- list(x = as.numeric(word_counts))
 
+  ## SAGE κ decomposition (topica >= 0.24.1): build stm's beta$kappa structure so
+  ## stm::sageLabels()/labelTopics() rank words by topic/covariate/interaction κ.
+  ## params order: K topics, then G covariate levels, then K·G interactions
+  ## (topic-major: row = (topic-1)*G + group, matching topica's layout).
+  beta_kappa <- NULL
+  if (!is.null(content) && !is.null(raw$kappa_m)) {
+    G <- raw$num_groups
+    kt <- matrix(raw$kappa_topic,       nrow = K, ncol = V, byrow = TRUE)
+    kc <- matrix(raw$kappa_cov,         nrow = G, ncol = V, byrow = TRUE)
+    ki <- matrix(raw$kappa_interaction, nrow = K * G, ncol = V, byrow = TRUE)
+    params <- c(lapply(seq_len(K),     function(k) kt[k, ]),
+                lapply(seq_len(G),     function(g) kc[g, ]),
+                lapply(seq_len(K * G), function(i) ki[i, ]))
+    beta_kappa <- list(m = raw$kappa_m, params = params)
+    settings$kappa <- list(interactions = TRUE, fixedintercept = TRUE)
+    settings$dim$A <- G
+  }
+
   ## mu$mu is the prior mean per document: a (K-1) x D matrix mu_d = X_d gamma
   ## for prevalence models, else a single (K-1) x 1 global mean. stm's
   ## thetaPosterior recovers mean(nu) = Sigma - cov(eta - mu) and Choleskys it,
@@ -61,11 +79,10 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
   obj <- list(
     mu = list(mu = mu_doc, gamma = gamma, prior = as.numeric(raw$mu)),
     sigma = sigma,
-    ## beta$logbeta is a per-group list for content models (what sage_labels()
-    ## and the perspectives plot read). NOTE: faSTM does not reconstruct stm's
-    ## additive SAGE kappa decomposition, so stm::sageLabels()/labelTopics() are
-    ## not supported on content fits — use faSTM::sage_labels() instead.
-    beta = list(logbeta = logbeta),
+    ## beta$logbeta is a per-group list for content models; beta$kappa is the
+    ## stm-shaped SAGE decomposition (topica >= 0.24.1), so stm::sageLabels() and
+    ## stm::labelTopics() work on content fits.
+    beta = c(list(logbeta = logbeta), if (!is.null(beta_kappa)) list(kappa = beta_kappa)),
     settings = c(settings, list(
       covariates = list(X = if (is.null(prevalence)) NULL else prevalence$X,
                         betaindex = if (is.null(content)) rep(1L, D) else content$group + 1L,
