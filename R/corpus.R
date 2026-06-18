@@ -71,6 +71,17 @@ from_tidy <- function(data, document = "document", term = "term",
     stop("meta has ", nrow(meta), " rows but the corpus has ", nrow(m), " documents.",
          call. = FALSE)
 
+  ## validate counts: must be finite, non-negative integers (bad counts otherwise
+  ## get silently rounded / drop documents)
+  if (length(m@x)) {
+    if (anyNA(m@x) || any(!is.finite(m@x)))
+      stop("document-term counts must be finite (found NA/Inf).", call. = FALSE)
+    if (any(m@x < 0))
+      stop("document-term counts must be non-negative.", call. = FALSE)
+    if (any(m@x != round(m@x)))
+      stop("document-term counts must be integers (found fractional values).", call. = FALSE)
+  }
+
   ## drop zero-count terms, re-index vocab
   tf <- Matrix::colSums(m)
   keep_term <- tf > 0

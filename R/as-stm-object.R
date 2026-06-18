@@ -46,11 +46,18 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
     matrix(raw$gamma, ncol = Km1, byrow = TRUE) # num_features x (K-1)
   }
 
+  ## stm reads corpus term frequencies from settings$dim$wcounts$x (used by the
+  ## lift labels); populate it so stm::labelTopics()$lift works on faSTM fits.
+  if (!is.null(word_counts)) settings$dim$wcounts <- list(x = as.numeric(word_counts))
+
   obj <- list(
     mu = list(mu = raw$mu, gamma = gamma),
     sigma = sigma,
-    beta = list(logbeta = logbeta,
-                kappa = if (!is.null(content)) raw$content_beta else NULL),
+    ## beta$logbeta is a per-group list for content models (what sage_labels()
+    ## and the perspectives plot read). NOTE: faSTM does not reconstruct stm's
+    ## additive SAGE kappa decomposition, so stm::sageLabels()/labelTopics() are
+    ## not supported on content fits — use faSTM::sage_labels() instead.
+    beta = list(logbeta = logbeta),
     settings = c(settings, list(
       covariates = list(X = if (is.null(prevalence)) NULL else prevalence$X,
                         betaindex = if (is.null(content)) rep(1L, D) else content$group + 1L,
@@ -106,7 +113,10 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
   if (is.null(content)) return(NULL)
   if (inherits(content, "formula")) {
     if (is.null(data)) stop("content formula needs `data`.", call. = FALSE)
-    v <- stats::model.frame(content, data = data)[[1L]]
+    mf <- stats::model.frame(content, data = data)
+    if (ncol(mf) != 1L)
+      stop("content can only contain one variable (got ", ncol(mf), ").", call. = FALSE)
+    v <- mf[[1L]]
   } else {
     v <- content
   }

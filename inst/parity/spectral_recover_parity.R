@@ -1,4 +1,17 @@
 #!/usr/bin/env Rscript
+# HISTORICAL (pre-topica-v0.24.0). This script ports topica's OLD recover() — a
+# fixed-iteration, non-converging exponentiated-gradient solve — to show it did
+# NOT reproduce R stm's recoverL2() (aligned cosine ~0.36). topica v0.24.0
+# (#234/#235) FIXED this: the recover() step now uses a scale-adaptive,
+# converged update and reproduces recoverL2() at cosine 1.0 (see topica's
+# parity/spectral_recover_stm.py). Kept for provenance.
+#
+# IMPORTANT (then and now): matching the recovery *step* does not mean faSTM
+# reproduces stm's *fitted* topics — the EM objective is non-convex, so
+# independent fits land in different basins. For a guaranteed replication, start
+# faSTM from stm's own spectral beta: stm(..., init.beta = <K x V>).
+#
+# Original description follows -------------------------------------------------
 # Minimal, self-contained reproduction: topica's spectral-init RECOVERY step
 # does not reproduce R stm's recoverL2(), even on an identical co-occurrence
 # matrix and identical anchor words.

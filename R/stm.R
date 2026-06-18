@@ -57,6 +57,8 @@ stm <- function(documents, vocab, K,
   init.type <- match.arg(init.type)
   gamma.prior <- match.arg(gamma.prior)
   inference <- match.arg(inference)
+  if (!is.numeric(K) || length(K) != 1L || K < 2L || K != as.integer(K))
+    stop("K must be a single integer >= 2.", call. = FALSE)
 
   ## ---- ingest: accept a faSTM corpus / quanteda dfm / matrix, or an
   ##      stm-style (documents list + vocab) input ---------------------------

@@ -4,17 +4,21 @@
 #' Spline term for prevalence formulas
 #'
 #' A b-spline basis for smooth covariate effects, e.g. `prevalence = ~ s(day)`.
-#' Equivalent to `stm::s()`; a thin wrapper over [splines::bs()]. (You can also
-#' use `splines::bs()`/`ns()` directly.)
+#' Matches `stm::s()` exactly — including the `df = min(10, nval - 1)` default —
+#' so spline-term coefficients agree with `stm`. (You can also use
+#' [splines::bs()]/[splines::ns()] directly.)
 #'
 #' @param x Numeric predictor.
-#' @param df Basis dimension.
-#' @param degree Piecewise-polynomial degree.
+#' @param df Basis dimension; defaults to `min(10, length(unique(x)) - 1)`.
 #' @param ... Passed to [splines::bs()].
-#' @return A spline basis matrix.
+#' @return A spline basis matrix (with class `"s"`).
 #' @export
-s <- function(x, df = 10, degree = 3, ...) {
-  splines::bs(x, df = df, degree = degree, ...)
+s <- function(x, df, ...) {
+  if (inherits(x, "Date")) x <- as.numeric(x)
+  if (missing(df)) df <- min(10, length(unique(x)) - 1L)
+  obj <- splines::bs(x, df, ...)
+  attr(obj, "class") <- c("s", attr(obj, "class"))
+  obj
 }
 
 #' Residual dispersion check (is K large enough?)

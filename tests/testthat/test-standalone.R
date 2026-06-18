@@ -170,6 +170,34 @@ test_that("init.beta starts the fit from a supplied initialization", {
   expect_equal(exp(m0$beta$logbeta[[1]]), B, tolerance = 1e-8)
 })
 
+test_that("input validation rejects bad K, counts, and multi-var content", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(5L)
+  expect_error(stm(f$corpus, K = 1, verbose = FALSE), "K must be")
+  expect_error(stm(f$corpus, K = 4, content = ~ Party + Year, data = f$corpus$meta,
+                   verbose = FALSE), "one variable")
+  m <- methods::as(quanteda::dfm(quanteda::tokens(quanteda::data_corpus_inaugural)), "CsparseMatrix")
+  mneg <- m; mneg@x[1] <- -1
+  expect_error(as_corpus(mneg), "non-negative")
+  mfr <- m; mfr@x[1] <- 1.5
+  expect_error(as_corpus(mfr), "integer")
+})
+
+test_that("fit carries settings$dim$wcounts$x so stm::labelTopics()$lift works", {
+  skip_if_not_built(); skip_if_not_installed("quanteda"); skip_if_not_installed("stm")
+  f <- make_fit(6L)
+  expect_equal(length(f$fit$settings$dim$wcounts$x), length(f$fit$vocab))
+  lt <- stm::labelTopics(f$fit, n = 5)        # would error without the wcounts slot
+  fa <- label_topics(f$fit, n = 5)
+  expect_true(all(mapply(setequal, asplit(lt$lift, 1), asplit(fa$lift, 1))))
+})
+
+test_that("s() matches stm::s default df (spline coefficients agree)", {
+  skip_if_not_installed("stm")
+  x <- c(rep(1:6, 3))
+  expect_equal(unclass(s(x)), unclass(stm::s(x)), check.attributes = FALSE)
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)

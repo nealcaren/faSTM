@@ -1,16 +1,27 @@
 # faSTM
 
-A fast, modern **Structural Topic Model** for R. faSTM does everything the
-[`stm`](https://github.com/bstewart/stm) package does — prevalence and content
-covariates, FREX/lift/score labels, semantic coherence, representative
-documents, covariate-effect estimation — but fits in **seconds instead of
-minutes** via a Rust core, scales to large corpora, and is self-contained (no
-dependency on `stm`).
+A fast, modern **Structural Topic Model** for R. faSTM covers the core `stm`
+workflow — prevalence and content covariates, FREX/lift/score labels, semantic
+coherence, representative documents, covariate-effect estimation, model
+selection, out-of-sample inference — but fits in **seconds instead of minutes**
+via a Rust core, scales to large corpora, and is self-contained (no dependency
+on [`stm`](https://github.com/bstewart/stm)).
 
 `stm` is no longer actively developed (last feature release 2023; 100+ open
-issues). faSTM is a clean-room successor: the same model and outputs, a faster
-engine, and fixes for the long-standing pain points. Existing `stm` analyses
-migrate with minimal changes — the fitted object is structurally compatible.
+issues). faSTM is a clean-room successor with a faster engine, an honest
+`estimateEffect`, and a familiar API. Most `stm` analysis code runs with minimal
+edits — the fitted object is structurally compatible.
+
+**What faSTM is *not*:** it does not reproduce a *specific* `stm` fit's topics.
+STM's objective is non-convex and faSTM uses a different optimizer, so an
+independent fit lands in its own (valid, deterministic) optimum — different
+topics and numbering, not a relabeling of `stm`'s. For a guaranteed
+"replicate the original" run, pass `stm`'s own spectral β via
+`stm(..., init.beta = )`. A few `stm` features are also not yet ported (e.g.
+`toLDAvis`, `topicQuality`, `init.type = "LDA"/"Custom"`,
+`estimateEffect(uncertainty = "Local")`), and `stm`'s SAGE readers
+(`sageLabels`/`labelTopics`) do not work on faSTM **content** models — use
+`faSTM::sage_labels()` instead.
 
 ```r
 library(quanteda)   # tokenization (faSTM reads quanteda/tidytext, doesn't reinvent it)
@@ -43,18 +54,20 @@ summary(eff)
   propagating per-document posterior uncertainty.
 - **Fixes open stm requests.** `frex_scores()` returns the numeric FREX matrix,
   not just words (stm#265); inspection carries the corpus so nothing needs
-  re-supplying; reproducible spectral init (tracking topica#234).
+  re-supplying; deterministic spectral init whose Arora recovery reproduces
+  `stm`'s `recoverL2()` step exactly (topica#234, fixed in topica v0.24.0).
 - **Self-contained.** Tokenize with `quanteda`/`tidytext` (which the field
   already uses); faSTM reads their objects. No `textProcessor` to inherit bugs
   from.
 
 ## Faithful where it counts
 
-On a shared fit, faSTM's FREX/prob labels are **identical** to `stm::labelTopics`,
-and `exclusivity()` / `semantic_coherence()` match `stm` to floating point — so
-the numbers reviewers expect don't change. And because the fitted object is
-`stm`-shaped, `stm`'s own `labelTopics`/`plot`/`toLDAvis` still work on it during
-migration.
+On a **shared fit** (same β/θ), faSTM's inspection numbers match `stm`'s:
+FREX/prob/score labels are **identical** to `stm::labelTopics`, and
+`exclusivity()` / `semantic_coherence()` match to floating point. The fitted
+object is `stm`-shaped, so `stm::labelTopics()` and `stm::plot.STM()` run on a
+faSTM (non-content) fit during migration. This is parity *given the same fit*,
+not a claim that faSTM and `stm` produce the same fit (see above).
 
 ## Status
 
@@ -63,9 +76,10 @@ content, threads); the full inspection layer (labels/FREX/coherence/exclusivity/
 topic correlations, SAGE labels); honest `estimateEffect`; out-of-sample
 inference (`fit_new_documents`); model selection (`search_k`, `select_model`,
 `many_topics`); and a modern **ggplot2** plotting layer (topic summary, covariate
-effects with CIs, search-K diagnostics, topic-correlation network). In progress:
-SVI for covariate models (topica#231), exact spectral-init reproduction
-(topica#234).
+effects with CIs, search-K diagnostics, topic-correlation network). Not yet
+ported: `toLDAvis`, `topicQuality`, `init.type = "LDA"/"Custom"`,
+`estimateEffect(uncertainty = "Local")`, stm-compatible SAGE readers on content
+fits. In progress: SVI for covariate models (topica#231).
 
 ## Install (beta)
 
