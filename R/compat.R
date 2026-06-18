@@ -142,3 +142,23 @@ toLDAvis <- function(model, documents = NULL, ...) {
     term.frequency = model$word_counts)
   LDAvis::serVis(json, ...)
 }
+
+#' @rdname stm-compat
+#' @export
+semanticCoherence <- function(model, documents = NULL, M = 10L, ...)
+  semantic_coherence(model, M = M)
+
+#' @rdname stm-compat
+#' @export
+checkResiduals <- function(stmobj, documents = NULL, tol = 0.01, ...)
+  check_residuals(stmobj, tol = tol)
+
+#' @rdname stm-compat
+#' @export
+make.dt <- function(model, meta = NULL) make_dt(model, meta = meta)
+
+#' @rdname stm-compat
+#' @export
+findTopic <- function(model, words, n = 20L,
+                      type = c("prob", "frex", "lift", "score"), ...)
+  find_topic(model, words, n = n, type = match.arg(type))

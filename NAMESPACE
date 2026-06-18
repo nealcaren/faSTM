@@ -45,6 +45,10 @@ export(eval.heldout)
 export(thetaPosterior)
 export(topicQuality)
 export(toLDAvis)
+export(semanticCoherence)
+export(checkResiduals)
+export(make.dt)
+export(findTopic)
 
 # out-of-sample inference
 export(fit_new_documents)
