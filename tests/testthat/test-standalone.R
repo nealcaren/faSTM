@@ -176,6 +176,24 @@ test_that("difference plot with a spline term reuses fitted knots (makepredictca
   expect_s3_class(p, "ggplot")
 })
 
+test_that("stm-wishlist extras: numeric FREX values, effect R^2/F, p.adjust", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  # #265: topic_terms returns the numeric score behind each top word
+  tt <- topic_terms(f$fit, n = 4, by = "frex")
+  expect_true(all(c("topic", "rank", "term", "score", "measure") %in% names(tt)))
+  expect_equal(nrow(tt), 6L * 4L)
+  expect_true(is.numeric(tt$score))
+  # #255 + #224: estimateEffect diagnostics and p-value adjustment
+  eff <- estimateEffect(1:6 ~ Party, f$fit, metadata = f$corpus$meta, nsims = 20L, seed = 1L)
+  s <- summary(eff, p.adjust.method = "BH")
+  expect_true(all(c("r.squared", "fstatistic", "df.num", "df.den") %in% names(s$diagnostics)))
+  expect_equal(s$p.adjust.method, "BH")
+  raw <- summary(eff)$tables[[1]][["Pr(>|t|)"]]
+  adj <- s$tables[[1]][["Pr(>|t|)"]]
+  expect_true(all(adj >= raw - 1e-12))                # BH never decreases p-values
+})
+
 test_that("init.type='LDA' seeds from a real CVB0 LDA (no warning, distinct topics)", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(6L)

@@ -50,6 +50,35 @@ frex_scores <- function(model, w = 0.5) {
   lambda * unif + (1 - lambda) * prob
 }
 
+#' Top terms per topic, with their numeric scores (tidy)
+#'
+#' Like [label_topics()] but returns the *values* behind the ranking, not just
+#' the words — e.g. the numeric FREX score per top term (stm issue #265).
+#'
+#' @param model A faSTM fit.
+#' @param n Terms per topic.
+#' @param by Ranking measure: `"prob"`, `"frex"`, `"lift"`, or `"score"`.
+#' @param frexweight FREX frequency/exclusivity weight (used when `by = "frex"`).
+#' @return A tidy data.frame with `topic`, `rank`, `term`, `score`, `measure`.
+#' @export
+topic_terms <- function(model, n = 7L, by = c("prob", "frex", "lift", "score"),
+                        frexweight = 0.5) {
+  by <- match.arg(by)
+  logbeta <- model$beta$logbeta[[1]]; K <- nrow(logbeta); V <- ncol(logbeta)
+  vocab <- model$vocab; wc <- model$word_counts
+  scoremat <- switch(by,
+    prob  = logbeta,
+    frex  = frex_scores(model, w = frexweight),
+    lift  = logbeta - matrix(log(wc) - log(sum(wc)), K, V, byrow = TRUE),
+    score = exp(logbeta) * (logbeta - matrix(colMeans(logbeta), K, V, byrow = TRUE)))
+  do.call(rbind, lapply(seq_len(K), function(k) {
+    ord <- order(-scoremat[k, ])[seq_len(n)]
+    data.frame(topic = k, rank = seq_len(n), term = vocab[ord],
+               score = scoremat[k, ord], measure = by,
+               stringsAsFactors = FALSE)
+  }))
+}
+
 #' Label topics by top words (prob, FREX, lift, score)
 #'
 #' @param model A faSTM fit.

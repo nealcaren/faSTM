@@ -60,19 +60,30 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
 }
 
 #' @export
-summary.faSTM_effect <- function(object, topics = NULL, ...) {
+summary.faSTM_effect <- function(object, topics = NULL,
+                                 p.adjust.method = "none", ...) {
   coefs <- object$coefficients
   if (!is.null(topics)) coefs <- coefs[paste0("topic", topics)]
   tabs <- lapply(coefs, function(c) {
     tval <- c$est / c$se
+    pval <- 2 * stats::pt(-abs(tval), df = c$df)
+    pval <- stats::p.adjust(pval, method = p.adjust.method)   # #224
     data.frame(Estimate = c$est, `Std. Error` = c$se,
-               `t value` = tval,
-               `Pr(>|t|)` = 2 * stats::pt(-abs(tval), df = c$df),
+               `t value` = tval, `Pr(>|t|)` = pval,
                row.names = object$terms, check.names = FALSE)
   })
   names(tabs) <- names(coefs)
-  structure(list(tables = tabs, formula = object$formula,
-                 uncertainty = object$uncertainty, nsims = object$nsims),
+  ## per-topic regression diagnostics (#255: df, F, R^2)
+  diagnostics <- data.frame(
+    topic      = names(coefs),
+    r.squared  = vapply(coefs, function(c) c$r.squared  %||% NA_real_, numeric(1)),
+    fstatistic = vapply(coefs, function(c) c$fstatistic %||% NA_real_, numeric(1)),
+    df.num     = vapply(coefs, function(c) c$df.num %||% NA_integer_, numeric(1)),
+    df.den     = vapply(coefs, function(c) c$df.den %||% c$df, numeric(1)),
+    row.names = NULL, check.names = FALSE)
+  structure(list(tables = tabs, diagnostics = diagnostics, formula = object$formula,
+                 uncertainty = object$uncertainty, nsims = object$nsims,
+                 p.adjust.method = p.adjust.method),
             class = "summary.faSTM_effect")
 }
 
@@ -80,9 +91,15 @@ summary.faSTM_effect <- function(object, topics = NULL, ...) {
 print.summary.faSTM_effect <- function(x, ...) {
   cat("faSTM estimateEffect (", x$uncertainty, " uncertainty, ",
       x$nsims, " draws)\n", sep = "")
+  if (!identical(x$p.adjust.method, "none"))
+    cat("p-values adjusted: ", x$p.adjust.method, "\n", sep = "")
   for (nm in names(x$tables)) {
     cat("\n", nm, ":\n", sep = "")
     print(round(x$tables[[nm]], 4L))
+    d <- x$diagnostics[x$diagnostics$topic == nm, ]
+    if (nrow(d) && is.finite(d$r.squared))
+      cat(sprintf("  R-squared: %.3f | F(%d,%d): %.2f\n",
+                  d$r.squared, d$df.num, d$df.den, d$fstatistic))
   }
   invisible(x)
 }
@@ -96,7 +113,11 @@ print.summary.faSTM_effect <- function(x, ...) {
   df <- n - p
   s2 <- rss / df
   xtxi <- chol2inv(qr.R(qr(X)))
-  list(coef = fit$coefficients, vcov = s2 * xtxi, df = df)
+  tss <- sum((y - mean(y))^2)                       # regression diagnostics (#255)
+  r2  <- if (tss > 0) 1 - rss / tss else NA_real_
+  fst <- if (p > 1L && df > 0L && rss > 0) ((tss - rss) / (p - 1L)) / (rss / df) else NA_real_
+  list(coef = fit$coefficients, vcov = s2 * xtxi, df = df,
+       r.squared = r2, fstatistic = fst, df.num = p - 1L, df.den = df)
 }
 
 # Rubin's rules: pool point estimates and within/between-draw covariance. Returns
@@ -113,7 +134,10 @@ print.summary.faSTM_effect <- function(x, ...) {
   } else {
     total <- within
   }
-  list(est = est, se = sqrt(diag(total)), vcov = total, df = fits[[1L]]$df)
+  list(est = est, se = sqrt(diag(total)), vcov = total, df = fits[[1L]]$df,
+       r.squared  = mean(vapply(fits, `[[`, numeric(1), "r.squared")),
+       fstatistic = mean(vapply(fits, `[[`, numeric(1), "fstatistic")),
+       df.num = fits[[1L]]$df.num, df.den = fits[[1L]]$df.den)
 }
 
 .formula_topics <- function(formula, K) {
