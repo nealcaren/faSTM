@@ -1,0 +1,192 @@
+---
+title: "faSTM: the stm vignette, run on faSTM"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{faSTM: the stm vignette, run on faSTM}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4.2,
+                      dpi = 96, message = FALSE, warning = FALSE)
+set.seed(2138)
+```
+
+This vignette walks through the **same analysis as the `stm` package vignette**
+(Roberts, Stewart & Tingley), using the identical CMU 2008 political-blog corpus
+— but every model is **fit live** here, because faSTM fits in seconds where `stm`
+takes minutes. (The `stm` vignette loads pre-computed objects to avoid the wait;
+faSTM does not need to.) The code mirrors the `stm` vignette's calls. Because
+each fit is fresh, the *topic numbers* differ from the original — the workflow,
+not the specific topics, is what carries over.
+
+```{r}
+library(faSTM)
+```
+
+## Ingesting data
+
+faSTM reads prepared text from `quanteda`/`tidytext` rather than tokenizing
+itself. A typical preparation:
+
+```{r prep, eval=FALSE}
+library(quanteda)
+dfmat <- corpus(my_data, text_field = "documents") |>
+  tokens(remove_punct = TRUE) |>
+  tokens_remove(stopwords("en")) |>
+  dfm() |>
+  dfm_trim(min_termfreq = 5)
+corpus <- as_corpus(dfmat)        # quanteda docvars become the metadata
+```
+
+For this vignette we use the bundled poliblog corpus (the `stm` vignette's
+`poliblog5k`), already prepared:
+
+```{r data}
+data(poliblog)
+poliblog
+out <- list(documents = poliblog$documents, vocab = poliblog$vocab, meta = poliblog$meta)
+```
+
+## Estimating the structural topic model
+
+The headline call mirrors the `stm` vignette exactly — topic prevalence varies
+with `rating` and a smooth function of `day`:
+
+```{r fit}
+poliblogPrevFit <- stm(out$documents, out$vocab, K = 20,
+                       prevalence = ~ rating + s(day), data = out$meta,
+                       init.type = "Spectral", seed = 2138)
+```
+
+That fit took seconds, not minutes.
+
+## Model selection and search
+
+`selectModel()` fits several models from different initializations and keeps the
+ones on the semantic-coherence / exclusivity frontier; `plotModels()` shows them.
+(Reduced to a few candidates here to keep the vignette quick.)
+
+```{r select, fig.height=4}
+poliblogSelect <- selectModel(out$documents, out$vocab, K = 20, N = 5,
+                              prevalence = ~ rating + s(day), data = out$meta, seed = 2138)
+plotModels(poliblogSelect)
+```
+
+`searchK()` sweeps the number of topics, reporting held-out likelihood, semantic
+coherence and exclusivity — and parallelizes across K:
+
+```{r searchk, fig.height=4.2}
+storage <- searchK(out$documents, out$vocab, K = c(10, 20),
+                   prevalence = ~ rating + s(day), data = out$meta, cores = 2)
+plot(storage)
+```
+
+## Interpreting topics
+
+Top words by probability, FREX, lift and score:
+
+```{r labels}
+labelTopics(poliblogPrevFit, c(3, 7, 20))
+```
+
+Representative documents per topic, displayed as wrapped quotes:
+
+```{r thoughts, fig.height=3.2}
+thoughts3 <- findThoughts(poliblogPrevFit, texts = out$meta$text, n = 2, topics = 3)$docs[[1]]
+plotQuote(substr(thoughts3, 1, 200), width = 50, main = "Topic 3")
+```
+
+Topics ranked by their expected prevalence in the corpus:
+
+```{r summary}
+plot(poliblogPrevFit, type = "summary")
+```
+
+## Covariate effects on topic prevalence
+
+`estimateEffect()` regresses topic proportions on the covariates, propagating
+topic-estimation uncertainty (the honest method of composition):
+
+```{r effect}
+out$meta$rating <- as.factor(out$meta$rating)
+prep <- estimateEffect(1:20 ~ rating + s(day), poliblogPrevFit,
+                       meta = out$meta, uncertainty = "Global")
+summary(prep, topics = 1)$tables[[1]]
+```
+
+Difference in topic prevalence between Liberal and Conservative blogs:
+
+```{r diff, fig.height=3.6}
+plot(prep, covariate = "rating", topics = c(3, 7, 20), model = poliblogPrevFit,
+     method = "difference", cov.value1 = "Liberal", cov.value2 = "Conservative",
+     xlab = "More Conservative ... More Liberal")
+```
+
+A topic's prevalence over time (smooth term in `day`):
+
+```{r cont, fig.height=3.6}
+plot(prep, "day", method = "continuous", topics = 7, model = poliblogPrevFit)
+```
+
+## Topical content
+
+Letting word *use within topics* vary by `rating` (a SAGE content covariate),
+then comparing the two sides' vocabulary for a topic:
+
+```{r content, fig.height=5}
+poliblogContent <- stm(out$documents, out$vocab, K = 20,
+                       prevalence = ~ rating + s(day), content = ~ rating,
+                       data = out$meta, init.type = "Spectral", seed = 2138)
+plot(poliblogContent, type = "perspectives", topics = 1)
+```
+
+Comparing the vocabulary of two topics:
+
+```{r persp2, fig.height=5}
+plot(poliblogPrevFit, type = "perspectives", topics = c(12, 20))
+```
+
+## Interactions
+
+Prevalence can interact covariates — here `rating` with time — and the effect
+plot can condition on a moderator value:
+
+```{r interaction, fig.height=3.8}
+poliblogInteraction <- stm(out$documents, out$vocab, K = 20,
+                           prevalence = ~ rating * day, data = out$meta,
+                           init.type = "Spectral", seed = 2138)
+prepInt <- estimateEffect(c(16) ~ rating * day, poliblogInteraction,
+                          metadata = out$meta, uncertainty = "None")
+plot(prepInt, covariate = "day", model = poliblogInteraction, method = "continuous",
+     xlab = "Days", moderator = "rating", moderator.value = "Liberal", topics = 16)
+```
+
+## More visualization
+
+A word cloud for a topic, the topic-correlation network, and the convergence
+trajectory:
+
+```{r viz, fig.height=4.5}
+cloud(poliblogPrevFit, topic = 7)
+plot(topicCorr(poliblogPrevFit))
+plot(poliblogPrevFit$convergence$bound, type = "l",
+     ylab = "Approximate Objective", main = "Convergence")
+```
+
+## Out-of-sample documents
+
+New documents get topic proportions by holding the fitted topics fixed:
+
+```{r newdocs}
+theta_new <- fit_new_documents(poliblogPrevFit, poliblog)
+dim(theta_new)
+```
+
+---
+
+Everything above is the `stm` vignette's workflow, run on faSTM: the same
+function names and arguments, the same corpus, the same kinds of plots — fit in
+seconds and with an honest `estimateEffect`. Existing `stm` scripts port with
+little more than the changes shown here.
