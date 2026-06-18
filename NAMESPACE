@@ -25,6 +25,10 @@ export(check_residuals)
 # formula helpers
 export(s)
 
+# out-of-sample inference
+export(fit_new_documents)
+export(align_corpus)
+
 # model selection
 export(search_k)
 export(make_heldout)

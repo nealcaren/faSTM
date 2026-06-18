@@ -13,7 +13,7 @@
 use extendr_api::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-use topica::ctm::{fit_ctm, GammaPrior};
+use topica::ctm::{fit_ctm, infer_theta, GammaPrior};
 
 /// Run `f` on a scoped rayon pool of `n` workers (mirrors topica's
 /// `run_with_threads`). `n < 1` uses the global pool (all cores). The parallel
@@ -166,7 +166,40 @@ fn fit_stm(
     )
 }
 
+/// Out-of-sample topic inference: for each new document, run the variational
+/// E-step against fixed globals (β, μ, Σ⁻¹) and return θ. Documents are passed
+/// sparse — `words` are 0-based ids into the *fitted model's* vocabulary
+/// (out-of-vocabulary terms dropped by the R caller) with their `counts`,
+/// concatenated, plus per-document term counts `doc_nterms`.
+#[extendr]
+fn infer_theta_new(
+    beta_flat: Vec<f64>,   // K*V row-major (probabilities)
+    num_topics: i32,
+    num_types: i32,
+    mu: Vec<f64>,          // K-1
+    siginv: Vec<f64>,      // (K-1)^2 row-major
+    words: Vec<i32>,       // concatenated 0-based vocab ids
+    counts: Vec<f64>,
+    doc_nterms: Vec<i32>,
+) -> Vec<f64> {
+    let k = num_topics as usize;
+    let v = num_types as usize;
+    let beta: Vec<Vec<f64>> = (0..k).map(|t| beta_flat[t * v..(t + 1) * v].to_vec()).collect();
+
+    let mut out = Vec::with_capacity(doc_nterms.len() * k);
+    let mut cur = 0usize;
+    for &nt in &doc_nterms {
+        let nt = nt as usize;
+        let w: Vec<usize> = words[cur..cur + nt].iter().map(|&x| x as usize).collect();
+        let c: Vec<f64> = counts[cur..cur + nt].to_vec();
+        out.extend(infer_theta(&beta, &mu, &siginv, &w, &c));
+        cur += nt;
+    }
+    out
+}
+
 extendr_module! {
     mod faSTM;
     fn fit_stm;
+    fn infer_theta_new;
 }

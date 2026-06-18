@@ -91,6 +91,19 @@ test_that("conveniences: s(), check_residuals, make_dt, find_topic, sage_labels"
   expect_equal(length(sl$groups), nlevels(factor(f$corpus$meta$Party)))
 })
 
+test_that("fit_new_documents infers topics out of sample", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  th <- fit_new_documents(f$fit, f$corpus)         # self-inference
+  expect_equal(dim(th), dim(f$fit$theta))
+  expect_true(all(abs(rowSums(th) - 1) < 1e-8))
+  # reproduces the fitted proportions closely
+  cosines <- vapply(seq_len(nrow(th)), function(i)
+    sum(th[i, ] * f$fit$theta[i, ]) /
+      sqrt(sum(th[i, ]^2) * sum(f$fit$theta[i, ]^2)), numeric(1))
+  expect_gt(mean(cosines), 0.99)
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)
