@@ -145,6 +145,47 @@ topic_correlation <- function(model, cutoff = 0.01) {
   list(cor = cmat, posadj = posadj)
 }
 
+#' Labels for a content (SAGE) model
+#'
+#' For models fit with a `content` covariate, reports each topic's marginal top
+#' words plus, for every content group, the words most distinctive to that group
+#' within the topic (group-vs-marginal log-ratio — the SAGE deviation).
+#'
+#' @param model A faSTM fit with a content covariate.
+#' @param n Words per list.
+#' @return A `faSTM_sagelabels` object.
+#' @export
+sage_labels <- function(model, n = 7L) {
+  lb <- model$beta$logbeta
+  if (length(lb) < 2L)
+    stop("sage_labels() needs a content model (fit stm(..., content = ~ group)).",
+         call. = FALSE)
+  vocab <- model$vocab; K <- nrow(lb[[1]]); G <- length(lb)
+  groups <- model$settings$covariates$yvarlevels
+  if (is.null(groups)) groups <- paste0("group", seq_len(G))
+  marg <- Reduce(`+`, lapply(lb, exp)) / G            # marginal topic-word
+  topw <- function(s) vocab[order(-s)[seq_len(n)]]
+  marginal <- t(apply(marg, 1L, topw))
+  bygroup <- lapply(seq_len(G), function(g)
+    t(vapply(seq_len(K), function(k) topw(lb[[g]][k, ] - log(marg[k, ])), character(n))))
+  names(bygroup) <- groups
+  structure(list(marginal = marginal, bygroup = bygroup, groups = groups,
+                 topics = seq_len(K)),
+            class = "faSTM_sagelabels")
+}
+
+#' @export
+print.faSTM_sagelabels <- function(x, ...) {
+  for (k in x$topics) {
+    cat(sprintf("Topic %d:\n", k))
+    cat("  Marginal:", paste(x$marginal[k, ], collapse = ", "), "\n")
+    for (g in x$groups)
+      cat(sprintf("  %s:%s %s\n", g, strrep(" ", max(0, 8 - nchar(g))),
+                  paste(x$bygroup[[g]][k, ], collapse = ", ")))
+  }
+  invisible(x)
+}
+
 .require_dtm <- function(model) {
   if (is.null(model$dtm))
     stop("this fit has no stored document-term matrix; refit with stm() on a ",

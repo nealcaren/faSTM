@@ -22,7 +22,7 @@
 #'   row per K (`K`, `heldout`, `semcoh`, `exclusivity`, `bound`).
 #' @export
 search_k <- function(corpus, K, prevalence = NULL, content = NULL,
-                     heldout = TRUE, proportion = 0.5,
+                     heldout = TRUE, proportion = 0.5, residuals = FALSE,
                      cores = 1L, M = 10L, seed = 1L, ...) {
   stopifnot(inherits(corpus, "faSTM_corpus"))
   K <- as.integer(K)
@@ -43,6 +43,7 @@ search_k <- function(corpus, K, prevalence = NULL, content = NULL,
       heldout     = if (heldout) eval_heldout(fit, ho) else NA_real_,
       semcoh      = mean(semantic_coherence(fit, M = M)),
       exclusivity = if (has_content) NA_real_ else mean(exclusivity(fit, M = M)),
+      residual    = if (residuals) check_residuals(fit)$dispersion else NA_real_,
       bound       = tail(fit$convergence$bound, 1L)
     )
   }
@@ -82,7 +83,7 @@ print.faSTM_searchk <- function(x, ...) {
 #' @export
 as.data.frame.faSTM_searchk <- function(x, ...) {
   r <- x$results
-  metrics <- c("heldout", "semcoh", "exclusivity", "bound")
+  metrics <- c("heldout", "semcoh", "exclusivity", "residual", "bound")
   metrics <- metrics[vapply(metrics, function(m) any(is.finite(r[[m]])), logical(1))]
   do.call(rbind, lapply(metrics, function(m)
     data.frame(K = r$K, metric = m, value = r[[m]])))

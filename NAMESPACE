@@ -17,11 +17,21 @@ export(find_thoughts)
 export(semantic_coherence)
 export(exclusivity)
 export(topic_correlation)
+export(sage_labels)
+export(find_topic)
+export(make_dt)
+export(check_residuals)
+
+# formula helpers
+export(s)
 
 # model selection
 export(search_k)
 export(make_heldout)
 export(eval_heldout)
+export(select_model)
+export(select_best)
+export(many_topics)
 
 S3method(as_corpus, faSTM_corpus)
 S3method(as_corpus, dfm)
@@ -31,6 +41,9 @@ S3method(print, faSTM_labels)
 S3method(print, faSTM_heldout)
 S3method(print, faSTM_searchk)
 S3method(as.data.frame, faSTM_searchk)
+S3method(print, faSTM_sagelabels)
+S3method(print, faSTM_selectmodel)
+S3method(print, faSTM_manytopics)
 S3method(summary, faSTM_effect)
 S3method(print, summary.faSTM_effect)
 

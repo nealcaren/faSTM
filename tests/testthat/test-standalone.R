@@ -65,6 +65,32 @@ test_that("search_k returns diagnostics per K and a tidy long form", {
   expect_true(all(c("K", "metric", "value") %in% names(long)))
 })
 
+test_that("select_model returns a frontier and select_best picks one fit", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  sel <- select_model(f$corpus, K = 6, N = 3, prevalence = ~ Party, cores = 1, seed = 1)
+  expect_s3_class(sel, "faSTM_selectmodel")
+  expect_length(sel$models, 3L)
+  expect_true(length(sel$frontier) >= 1L)
+  expect_s3_class(select_best(sel), "STM")
+})
+
+test_that("conveniences: s(), check_residuals, make_dt, find_topic, sage_labels", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  expect_true(is.matrix(s(1:20)))
+  cr <- check_residuals(f$fit)
+  expect_true(is.finite(cr$dispersion))
+  dt <- make_dt(f$fit)
+  expect_equal(ncol(dt), 7L)                    # document + 6 topics
+  expect_type(find_topic(f$fit, "nation"), "integer")
+
+  fc <- stm(f$corpus, K = 4, content = ~ Party, seed = 1, verbose = FALSE)
+  sl <- sage_labels(fc, n = 4)
+  expect_s3_class(sl, "faSTM_sagelabels")
+  expect_equal(length(sl$groups), nlevels(factor(f$corpus$meta$Party)))
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)
