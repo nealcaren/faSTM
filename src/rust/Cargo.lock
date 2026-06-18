@@ -290,7 +290,8 @@ dependencies = [
 
 [[package]]
 name = "topica"
-version = "0.24.0"
+version = "0.24.1"
+source = "git+https://github.com/nealcaren/topica?tag=v0.24.1#77082c35d3bbcffd1cbbcddfe3c8d089265f7b68"
 dependencies = [
  "bincode",
  "rand",
