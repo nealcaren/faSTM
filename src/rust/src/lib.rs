@@ -15,6 +15,20 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use topica::ctm::{fit_ctm, GammaPrior};
 
+/// Run `f` on a scoped rayon pool of `n` workers (mirrors topica's
+/// `run_with_threads`). `n < 1` uses the global pool (all cores). The parallel
+/// E-step (`variational::laplace`) is deterministic regardless of worker count.
+fn run_with_threads<T: Send, F: FnOnce() -> T + Send>(n: i32, f: F) -> T {
+    if n >= 1 {
+        match rayon::ThreadPoolBuilder::new().num_threads(n as usize).build() {
+            Ok(pool) => pool.install(f),
+            Err(_) => f(),
+        }
+    } else {
+        f()
+    }
+}
+
 /// Fit a structural topic model and return its raw arrays.
 ///
 /// Inputs are pre-converted in `R/stm.R`:
@@ -49,6 +63,7 @@ fn fit_stm(
     batch_size: i32,
     tau: f64,
     kappa: f64,
+    num_threads: i32,
 ) -> List {
     // --- reassemble documents: flat token stream -> Vec<Vec<u32>> ---------
     let mut docs: Vec<Vec<u32>> = Vec::with_capacity(doc_lens.len());
@@ -86,21 +101,23 @@ fn fit_stm(
     let mut rng = ChaCha8Rng::seed_from_u64(seed as u64);
 
     let model = match inference.as_str() {
-        "batch" => fit_ctm(
-            &docs,
-            num_topics as usize,
-            num_types as usize,
-            em_iters as usize,
-            em_tol,
-            sigma_shrink,
-            prevalence_ref,
-            content_ref,
-            init_spectral,
-            gamma_prior,
-            /* keep_nu = */ true, // need ν for the method-of-composition posterior
-            diagonal,
-            &mut rng,
-        ),
+        "batch" => run_with_threads(num_threads, || {
+            fit_ctm(
+                &docs,
+                num_topics as usize,
+                num_types as usize,
+                em_iters as usize,
+                em_tol,
+                sigma_shrink,
+                prevalence_ref,
+                content_ref,
+                init_spectral,
+                gamma_prior,
+                /* keep_nu = */ true, // need ν for the method-of-composition posterior
+                diagonal,
+                &mut rng,
+            )
+        }),
         "svi" => {
             // TODO(topica#231 PR B): route to ctm::fit_ctm_svi once it accepts
             // prevalence + content. The R layer already gates svi+covariates and

@@ -30,6 +30,9 @@
 #'   variational; scales to large corpora — requires a topica build with STM-SVI).
 #' @param batch_size,tau,kappa SVI controls (minibatch size; Robbins-Monro
 #'   `(tau + t)^(-kappa)` step schedule). Ignored when `inference = "batch"`.
+#' @param num_threads Worker threads for the parallel variational E-step. `0`
+#'   (default) uses all cores; `>= 1` pins a scoped pool. Results are identical
+#'   regardless of thread count.
 #' @param verbose Logical; print progress.
 #'
 #' @return An object of class `c("faSTM", "STM")` — an stm-compatible fit.
@@ -43,6 +46,7 @@ stm <- function(documents, vocab, K,
                 seed = 1L,
                 inference = c("batch", "svi"),
                 batch_size = 256L, tau = 64, kappa = 0.7,
+                num_threads = 0L,
                 verbose = TRUE) {
 
   init.type <- match.arg(init.type)
@@ -105,7 +109,8 @@ stm <- function(documents, vocab, K,
     inference      = inference,
     batch_size     = as.integer(batch_size),
     tau            = as.double(tau),
-    kappa          = as.double(kappa)
+    kappa          = as.double(kappa),
+    num_threads    = as.integer(num_threads)
   )
 
   as_stm_object(raw, vocab = vocab,

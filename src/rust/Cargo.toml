@@ -32,6 +32,9 @@ topica = { path = "../../../topica", default-features = false }
 rand = "0.8"
 rand_chacha = "0.3"
 
+# Scoped thread pool for the parallel variational E-step (num_threads control).
+rayon = "1"
+
 # ---- Local development override -------------------------------------------
 # Uncomment to build against a working tree instead of the pinned git rev:
 # [patch."https://github.com/nealcaren/topica"]

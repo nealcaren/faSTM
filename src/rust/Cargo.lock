@@ -87,6 +87,7 @@ dependencies = [
  "extendr-api",
  "rand",
  "rand_chacha",
+ "rayon",
  "topica",
 ]
 
