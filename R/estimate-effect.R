@@ -13,6 +13,9 @@
 #' @param uncertainty `"Global"` (method of composition over posterior draws,
 #'   default) or `"None"` (single OLS on the posterior-mean theta).
 #' @param nsims Posterior draws for `uncertainty = "Global"`.
+#' @param combine Optional list of topic vectors to also estimate as aggregate
+#'   topics (each set's proportions are summed before regressing); named entries
+#'   set the coefficient names. E.g. `combine = list(econ = c(3, 7))`.
 #' @param seed Optional seed for the posterior draws.
 #' @return An object of class `c("faSTM_effect", "estimateEffect")` with a
 #'   `summary()` method, holding pooled coefficients and standard errors per
@@ -21,7 +24,7 @@
 estimateEffect <- function(formula, stmobj, metadata = meta,
                            uncertainty = c("Global", "None", "Local"),
                            nsims = 100L, seed = NULL, meta = NULL,
-                           documents = NULL, ...) {
+                           documents = NULL, combine = NULL, ...) {
   stopifnot(inherits(stmobj, "faSTM"))
   if (is.null(metadata)) stop("supply document metadata via `metadata=` (or `meta=`).", call. = FALSE)
   uncertainty <- match.arg(uncertainty)
@@ -50,6 +53,20 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
     .rubin_pool(fits)
   })
   names(per_topic) <- paste0("topic", topics)
+
+  ## combine topics: estimate the effect on a summed set of topics' proportions,
+  ## treating them as one aggregate topic (stm issue #200).
+  if (!is.null(combine)) {
+    if (!is.list(combine)) combine <- list(combine)
+    if (is.null(names(combine)))
+      names(combine) <- vapply(combine, function(s) paste0("topics", paste(s, collapse = "+")),
+                               character(1))
+    comb <- lapply(combine, function(set) {
+      fits <- lapply(draws, function(th) .ols(X, rowSums(th[, set, drop = FALSE])))
+      .rubin_pool(fits)
+    })
+    per_topic <- c(per_topic, comb)
+  }
 
   out <- list(topics = topics, coefficients = per_topic,
               terms = colnames(X), formula = formula, metadata = metadata,

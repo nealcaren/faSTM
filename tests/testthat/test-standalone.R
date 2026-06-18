@@ -176,6 +176,20 @@ test_that("difference plot with a spline term reuses fitted knots (makepredictca
   expect_s3_class(p, "ggplot")
 })
 
+test_that("stm-wishlist: sage_labels frexweight + estimateEffect combine topics", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  # #189: frexweight changes SAGE group labels
+  fc <- stm(f$corpus, K = 4, content = ~ Party, data = f$corpus$meta, seed = 1, verbose = FALSE)
+  expect_false(identical(sage_labels(fc, n = 4)$bygroup,
+                         sage_labels(fc, n = 4, frexweight = 0.5)$bygroup))
+  # #200: combine topics into an aggregate effect
+  eff <- estimateEffect(1:6 ~ Party, f$fit, metadata = f$corpus$meta, nsims = 20L, seed = 1L,
+                        combine = list(grp = c(1L, 3L)))
+  expect_true("grp" %in% names(eff$coefficients))
+  expect_true("grp" %in% names(summary(eff)$tables))
+})
+
 test_that("stm-wishlist: effect_estimates data extractor + topic_corr_graph igraph", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(6L)

@@ -208,19 +208,30 @@ topic_correlation <- function(model, cutoff = 0.01) {
 #' @param n Words per list.
 #' @return A `faSTM_sagelabels` object.
 #' @export
-sage_labels <- function(model, n = 7L) {
+sage_labels <- function(model, n = 7L, frexweight = NULL) {
   lb <- model$beta$logbeta
   if (length(lb) < 2L)
     stop("sage_labels() needs a content model (fit stm(..., content = ~ group)).",
          call. = FALSE)
   vocab <- model$vocab; K <- nrow(lb[[1]]); G <- length(lb)
+  V <- ncol(lb[[1]])
   groups <- model$settings$covariates$yvarlevels
   if (is.null(groups)) groups <- paste0("group", seq_len(G))
   marg <- Reduce(`+`, lapply(lb, exp)) / G            # marginal topic-word
   topw <- function(s) vocab[order(-s)[seq_len(n)]]
   marginal <- t(apply(marg, 1L, topw))
+  ## Per group, rank words for each topic. Default: the group-vs-marginal log
+  ## ratio (how much the group emphasizes a word). With `frexweight` set, blend
+  ## that exclusivity with the group's frequency, FREX-style (stm issue #189).
+  group_score <- function(g, k) {
+    excl <- lb[[g]][k, ] - log(marg[k, ])
+    if (is.null(frexweight)) return(excl)
+    freqr <- rank(lb[[g]][k, ]) / V
+    exclr <- rank(excl) / V
+    1 / (frexweight / freqr + (1 - frexweight) / exclr)
+  }
   bygroup <- lapply(seq_len(G), function(g)
-    t(vapply(seq_len(K), function(k) topw(lb[[g]][k, ] - log(marg[k, ])), character(n))))
+    t(vapply(seq_len(K), function(k) topw(group_score(g, k)), character(n))))
   names(bygroup) <- groups
   structure(list(marginal = marginal, bygroup = bygroup, groups = groups,
                  topics = seq_len(K)),
