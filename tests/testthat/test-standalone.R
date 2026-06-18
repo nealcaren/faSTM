@@ -161,6 +161,21 @@ test_that("stm-compat aliases and new plot types work", {
                        cov.value1 = "Republican", cov.value2 = "Democratic"), "ggplot")
 })
 
+test_that("difference plot with a spline term reuses fitted knots (makepredictcall.s)", {
+  skip_if_not_built(); skip_if_not_installed("quanteda"); skip_if_not_installed("ggplot2")
+  f <- make_fit(6L)
+  f$corpus$meta$yr <- as.numeric(f$corpus$meta$Year)
+  fit <- stm(f$corpus, K = 6, prevalence = ~ Party + s(yr), data = f$corpus$meta,
+             seed = 1, verbose = FALSE)
+  eff <- estimateEffect(1:6 ~ Party + s(yr), fit, metadata = f$corpus$meta,
+                        nsims = 20L, seed = 1L)
+  # holds the spline var constant -> the basis must rebuild to the fitted df,
+  # not collapse to degree (the bug that broke the vignette difference plot).
+  p <- plot(eff, "Party", method = "difference",
+            cov.value1 = "Republican", cov.value2 = "Democratic", topics = 1:2)
+  expect_s3_class(p, "ggplot")
+})
+
 test_that("init.beta starts the fit from a supplied initialization", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(6L)
