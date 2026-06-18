@@ -45,7 +45,7 @@ fit_new_documents <- function(model, newdata) {
     beta <- exp(lb[[1]])
   }
   K <- nrow(beta); V <- ncol(beta)
-  mu <- model$mu$mu                            # K-1 (global prior mean)
+  mu <- model$mu$prior                         # K-1 (global prior mean; mu$mu is per-doc)
   siginv <- model$invsigma                     # (K-1) x (K-1)
 
   al <- align_corpus(newdata, model)

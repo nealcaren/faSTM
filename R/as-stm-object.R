@@ -50,10 +50,16 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
   ## lift labels); populate it so stm::labelTopics()$lift works on faSTM fits.
   if (!is.null(word_counts)) settings$dim$wcounts <- list(x = as.numeric(word_counts))
 
+  ## mu$mu is the prior mean per document: a (K-1) x D matrix mu_d = X_d gamma
+  ## for prevalence models, else a single (K-1) x 1 global mean. stm's
+  ## thetaPosterior recovers mean(nu) = Sigma - cov(eta - mu) and Choleskys it,
+  ## which is only PD when mu is the per-document mean (else the between-document
+  ## prevalence variance leaks in and breaks positive-definiteness). `prior`
+  ## keeps the global mean for out-of-sample inference (fit_new_documents).
+  mu_doc <- if (!is.null(prevalence)) t(prevalence$X %*% gamma) else matrix(raw$mu, ncol = 1L)
+
   obj <- list(
-    ## mu$mu as a (K-1) x 1 matrix (single global prior mean) — stm's
-    ## thetaPosterior / simulation code indexes ncol(mu$mu).
-    mu = list(mu = matrix(raw$mu, ncol = 1L), gamma = gamma),
+    mu = list(mu = mu_doc, gamma = gamma, prior = as.numeric(raw$mu)),
     sigma = sigma,
     ## beta$logbeta is a per-group list for content models (what sage_labels()
     ## and the perspectives plot read). NOTE: faSTM does not reconstruct stm's
