@@ -21,6 +21,9 @@ SystemRequirements: Cargo (Rust's package manager), rustc
 Imports:
     MASS,
     Matrix,
+    methods,
+    parallel,
+    splines,
     stats
 Suggests:
     ggplot2,
@@ -30,6 +33,7 @@ Suggests:
     LDAvis,
     clue,
     quanteda,
+    stm,
     tidytext,
     knitr,
     rmarkdown,
