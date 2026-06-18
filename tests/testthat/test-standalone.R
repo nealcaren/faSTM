@@ -272,6 +272,25 @@ test_that("multiple content covariates fit a crossed SAGE model + marginal recov
   ct <- content_topics(fc, by = "era", n = 4)
   expect_named(ct, levels(f$corpus$meta$era))
   expect_equal(dim(ct[["pre"]]), c(4L, 4L))
+
+  ## ACCURACY: crossing ~Party+era must be byte-identical to fitting a single
+  ## content covariate built as the manual interaction factor (same engine).
+  m2 <- f$corpus$meta
+  m2$gh <- droplevels(interaction(as.factor(m2$Party), as.factor(m2$era), sep = ":", drop = TRUE))
+  c2 <- f$corpus; c2$meta <- m2
+  fm <- stm(c2, K = 4, content = ~ gh, data = m2, seed = 1, verbose = FALSE)
+  lev <- fc$settings$covariates$yvarlevels
+  mp <- match(lev, fm$settings$covariates$yvarlevels)
+  expect_setequal(lev, fm$settings$covariates$yvarlevels)
+  maxdiff <- max(vapply(seq_along(lev), function(g)
+    max(abs(exp(fc$beta$logbeta[[g]]) - exp(fm$beta$logbeta[[mp[g]]]))), numeric(1)))
+  expect_lt(maxdiff, 1e-12)
+  ## content_topics marginal == manual average over the matching crossed groups
+  gt <- fc$settings$covariates$contenttable
+  gs <- gt$group[gt$era == "pre"]
+  manual <- Reduce(`+`, lapply(gs, function(g) exp(fc$beta$logbeta[[g]]))) / length(gs)
+  expect_equal(content_topics(fc, by = "era", n = 4)[["pre"]][1, ],
+               f$corpus$vocab[order(-manual[1, ])[1:4]])
 })
 
 test_that("input validation rejects bad K and counts", {
