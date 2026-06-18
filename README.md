@@ -67,12 +67,44 @@ effects with CIs, search-K diagnostics, topic-correlation network). In progress:
 SVI for covariate models (topica#231), exact spectral-init reproduction
 (topica#234).
 
-## Install
+## Install (beta)
+
+faSTM has a Rust core, so installing from source needs a **Rust toolchain**
+(`cargo` + `rustc`) — one-time setup:
+
+```sh
+# macOS / Linux: install Rust if you don't have it
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Then, in R — use whichever you already have (they're equivalent;
+`devtools::install_github` just calls `remotes`):
 
 ```r
-# requires a Rust toolchain (cargo, rustc)
+# the familiar way
+devtools::install_github("nealcaren/faSTM")
+
+# or the lighter-weight package (no full dev toolkit needed just to install)
+# install.packages("remotes")
 remotes::install_github("nealcaren/faSTM")
+
+# or the modern, fast installer
+# install.packages("pak")
+pak::pak("nealcaren/faSTM")
 ```
+
+The first install compiles the Rust core (it fetches and builds the pinned
+`topica` crate from GitHub — needs an internet connection — and takes a couple of
+minutes). After that, the package is **fully self-contained**: it has no runtime
+dependency on Rust, `topica`, or Python.
+
+Optional features pull in extra R packages only when used:
+`ggplot2`/`ggrepel` (plots), `quanteda`/`tidytext` (text prep), `glmnet`
+(`topic_lasso`), `clue` (faster topic alignment).
+
+> **Beta status.** The API is stabilizing toward a CRAN release. Please file
+> issues at <https://github.com/nealcaren/faSTM/issues> — bug reports, rough
+> edges, and missing `stm` features all welcome.
 
 ## License
 

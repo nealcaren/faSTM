@@ -18,14 +18,13 @@ path = "document.rs"
 extendr-api = "0.7"
 
 # The fitting core. STM = CTM + prevalence + content lives in topica::ctm::fit_ctm.
-# Pinned to a tagged revision so the released package is reproducible; the pinned
-# tag MUST be one that contains STM-SVI (topica #231 PR B) before faSTM ships an
-# `inference="svi"` claim. default-features = false keeps the NumPy-free, no-JVM,
-# no-pyo3 core only.
-# Release pin (uncomment for distributable builds; must be a tag with STM-SVI):
-# topica = { git = "https://github.com/nealcaren/topica", tag = "v0.23.1", default-features = false }
-# Dev: build against the local working tree.
-topica = { path = "../../../topica", default-features = false }
+# Pinned to a published tag so installs are reproducible and self-contained:
+# v0.24.0 has the faithful spectral recover() + `init_beta` warm-start (#234/#235)
+# that faSTM's binding requires. default-features = false keeps the NumPy-free,
+# no-JVM, no-pyo3 core only.
+topica = { git = "https://github.com/nealcaren/topica", tag = "v0.24.0", default-features = false }
+# Local dev override (uncomment to build against a working tree):
+# topica = { path = "../../../topica", default-features = false }
 
 # Must match topica's lockfile so the `Rng` trait bound and the seed stream are
 # byte-identical to topica's own STM fits (parity).
