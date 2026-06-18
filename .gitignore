@@ -18,3 +18,7 @@ src/rust/vendor/
 
 # macOS
 .DS_Store
+
+# configure-generated (from src/Makevars.in)
+src/Makevars
+src/Makevars.win

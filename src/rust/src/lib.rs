@@ -28,7 +28,7 @@ use topica::ctm::{fit_ctm, GammaPrior};
 /// once topica #231 PR B (STM-SVI) is in the pinned revision; the R layer gates
 /// the prevalence/content + svi combination until then.
 #[extendr]
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, unused_variables)]
 fn fit_stm(
     docs_flat: Vec<i32>,
     doc_lens: Vec<i32>,
@@ -46,9 +46,9 @@ fn fit_stm(
     diagonal: bool,
     seed: i32,
     inference: String,
-    _batch_size: i32,
-    _tau: f64,
-    _kappa: f64,
+    batch_size: i32,
+    tau: f64,
+    kappa: f64,
 ) -> List {
     // --- reassemble documents: flat token stream -> Vec<Vec<u32>> ---------
     let mut docs: Vec<Vec<u32>> = Vec::with_capacity(doc_lens.len());
