@@ -25,6 +25,9 @@ export(check_residuals)
 # formula helpers
 export(s)
 
+# plotting (ggplot2)
+export(plot_topic_network)
+
 # out-of-sample inference
 export(fit_new_documents)
 export(align_corpus)
@@ -48,6 +51,9 @@ S3method(as.data.frame, faSTM_searchk)
 S3method(print, faSTM_sagelabels)
 S3method(print, faSTM_selectmodel)
 S3method(print, faSTM_manytopics)
+S3method(plot, faSTM_searchk)
+S3method(plot, faSTM)
+S3method(plot, faSTM_effect)
 S3method(summary, faSTM_effect)
 S3method(print, summary.faSTM_effect)
 

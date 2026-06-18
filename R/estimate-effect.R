@@ -27,7 +27,10 @@ estimateEffect <- function(formula, stmobj, metadata,
   K <- ncol(stmobj$theta)
   topics <- .formula_topics(formula, K)
   rhs <- stats::reformulate(attr(stats::terms(formula), "term.labels"))
-  X <- stats::model.matrix(rhs, data = metadata)
+  mf <- stats::model.frame(rhs, data = metadata)
+  mterms <- stats::terms(mf)                      # carries spline knots (predvars)
+  xlevels <- stats::.getXlevels(mterms, mf)       # factor levels, for safe prediction
+  X <- stats::model.matrix(mterms, mf)
 
   if (uncertainty == "None") {
     draws <- list(stmobj$theta)
@@ -42,7 +45,8 @@ estimateEffect <- function(formula, stmobj, metadata,
   names(per_topic) <- paste0("topic", topics)
 
   out <- list(topics = topics, coefficients = per_topic,
-              terms = colnames(X), formula = formula,
+              terms = colnames(X), formula = formula, metadata = metadata,
+              mterms = mterms, xlevels = xlevels,
               uncertainty = uncertainty, nsims = length(draws))
   class(out) <- c("faSTM_effect", "estimateEffect")
   out
@@ -86,19 +90,21 @@ print.summary.faSTM_effect <- function(x, ...) {
   list(coef = fit$coefficients, vcov = s2 * xtxi, df = df)
 }
 
-# Rubin's rules: pool point estimates and within/between-draw variance.
+# Rubin's rules: pool point estimates and within/between-draw covariance. Returns
+# the FULL pooled covariance so plots can form arbitrary contrasts/predictions.
 .rubin_pool <- function(fits) {
   m <- length(fits)
-  B <- vapply(fits, `[[`, numeric(length(fits[[1L]]$coef)), "coef")
-  est <- rowMeans(B)
-  within <- Reduce(`+`, lapply(fits, function(f) diag(f$vcov))) / m
+  p <- length(fits[[1L]]$coef)
+  B <- vapply(fits, `[[`, numeric(p), "coef")            # p x m
+  est <- if (m > 1L) rowMeans(B) else B[, 1L]
+  within <- Reduce(`+`, lapply(fits, `[[`, "vcov")) / m  # p x p
   if (m > 1L) {
-    between <- apply(B, 1L, stats::var)
+    between <- stats::cov(t(B))                          # p x p
     total <- within + (1 + 1 / m) * between
   } else {
     total <- within
   }
-  list(est = est, se = sqrt(total), df = fits[[1L]]$df)
+  list(est = est, se = sqrt(diag(total)), vcov = total, df = fits[[1L]]$df)
 }
 
 .formula_topics <- function(formula, K) {

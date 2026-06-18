@@ -104,6 +104,19 @@ test_that("fit_new_documents infers topics out of sample", {
   expect_gt(mean(cosines), 0.99)
 })
 
+test_that("ggplot2 plot methods return ggplot objects", {
+  skip_if_not_built(); skip_if_not_installed("quanteda"); skip_if_not_installed("ggplot2")
+  f <- make_fit(6L)
+  expect_s3_class(plot(f$fit, type = "summary"), "ggplot")
+  expect_s3_class(plot_topic_network(f$fit), "ggplot")
+
+  sk <- search_k(f$corpus, K = c(5L, 8L), prevalence = ~ Party, cores = 1L, seed = 1L)
+  expect_s3_class(plot(sk), "ggplot")
+
+  eff <- estimateEffect(1:6 ~ Party, f$fit, metadata = f$corpus$meta, nsims = 20L, seed = 1L)
+  expect_s3_class(plot(eff, "Party", method = "pointestimate"), "ggplot")
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)

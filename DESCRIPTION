@@ -23,6 +23,7 @@ Imports:
     Matrix,
     stats
 Suggests:
+    ggplot2,
     quanteda,
     tidytext,
     testthat (>= 3.0.0)
