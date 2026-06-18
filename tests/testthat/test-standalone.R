@@ -176,6 +176,19 @@ test_that("difference plot with a spline term reuses fitted knots (makepredictca
   expect_s3_class(p, "ggplot")
 })
 
+test_that("init.type='LDA' seeds from a real CVB0 LDA (no warning, distinct topics)", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  w <- NULL
+  m0 <- withCallingHandlers(
+    stm(f$corpus, K = 6, init.type = "LDA", max.em.its = 0, seed = 1, verbose = FALSE),
+    warning = function(cnd) { w <<- c(w, conditionMessage(cnd)); invokeRestart("muffleWarning") })
+  expect_null(w)                                   # real init, not a warned fallback
+  B <- exp(m0$beta$logbeta[[1]])                   # 0 EM -> raw LDA-init beta
+  expect_true(all(abs(rowSums(B) - 1) < 1e-6))     # valid topic-word distributions
+  expect_equal(nrow(unique(round(B, 4))), 6L)      # K distinct topics
+})
+
 test_that("init.beta starts the fit from a supplied initialization", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(6L)

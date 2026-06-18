@@ -20,8 +20,10 @@
 #'   [stm::prepDocuments()]), aligned to `documents`.
 #' @param max.em.its Maximum EM iterations (batch) / epochs (svi).
 #' @param emtol Relative-bound convergence tolerance.
-#' @param init.type Topic initialization; `"Spectral"` (stm's default) or
-#'   `"Random"`.
+#' @param init.type Topic initialization: `"Spectral"` (stm's default),
+#'   `"Random"`, `"LDA"` (seed from a quick CVB0 LDA, like stm's collapsed-Gibbs
+#'   init), or `"Custom"` (seed from `init.beta` or a supplied `model`).
+#' @param model A fitted model whose topic-word matrix seeds `init.type = "Custom"`.
 #' @param init.beta Optional K x V topic-word probability matrix to start the fit
 #'   from a given initialization (overrides `init.type`). Supplying R `stm`'s
 #'   exact spectral beta here reproduces that run — a guaranteed
@@ -72,16 +74,11 @@ stm <- function(documents, vocab, K,
   ## Rust fit); they exist so stm scripts run unmodified.
 
   ## init.type: 'Custom' seeds beta from `init.beta` (or a supplied `model`);
-  ## 'LDA' has no faSTM initializer, so fall back to Spectral with a warning.
+  ## 'LDA' seeds it from a quick CVB0 LDA below (after the token stream is built).
   if (init.type == "Custom" && is.null(init.beta)) {
     if (is.null(model) || is.null(model$beta$logbeta))
       stop("init.type = 'Custom' needs `init.beta` or a fitted `model`.", call. = FALSE)
     init.beta <- exp(model$beta$logbeta[[1L]])
-  }
-  if (init.type == "LDA") {
-    warning("init.type = 'LDA' is not implemented in faSTM; using 'Spectral'.",
-            call. = FALSE)
-    init.type <- "Spectral"
   }
 
   ## ---- ingest: accept a faSTM corpus / quanteda dfm / matrix, or an
@@ -129,6 +126,19 @@ stm <- function(documents, vocab, K,
     stop("inference = \"svi\" with prevalence/content requires a topica build ",
          "that includes STM-SVI (topica #231 PR B). Use inference = \"batch\", ",
          "or pin a newer topica.", call. = FALSE)
+  }
+
+  ## ---- LDA initialization (stm's init.type = "LDA") ----------------------
+  ## Seed beta from a quick CVB0 LDA (topica's deterministic collapsed VB), the
+  ## faSTM analog of stm's collapsed-Gibbs LDA init; fed in as init.beta below.
+  if (init.type == "LDA" && is.null(init.beta)) {
+    lda.its <- if (is.null(dots$lda.its)) 50L else as.integer(dots$lda.its)
+    lda_flat <- lda_init_beta(
+      docs_flat = docs_flat, doc_lens = doc_lens,
+      num_types = V, num_topics = as.integer(K),
+      iters = lda.its, alpha = 50 / K, beta = 0.01, seed = as.integer(seed))
+    B <- matrix(lda_flat, nrow = K, ncol = V, byrow = TRUE)  # K x V probs
+    init.beta <- B / rowSums(B)                              # ensure rows sum to 1
   }
 
   ## ---- fit (single Rust call) --------------------------------------------

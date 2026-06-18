@@ -230,8 +230,50 @@ fn infer_theta_new(
     out
 }
 
+/// LDA topic-word matrix via topica's CVB0 (deterministic collapsed variational
+/// Bayes), to seed a "replicate stm's LDA init" STM fit. Mirrors stm's
+/// collapsed-Gibbs LDA initialization; the result is fed back as `init_beta`.
+/// Returns K*V row-major topic-word probabilities.
+#[extendr]
+fn lda_init_beta(
+    docs_flat: Vec<i32>,
+    doc_lens: Vec<i32>,
+    num_types: i32,
+    num_topics: i32,
+    iters: i32,
+    alpha: f64,
+    beta: f64,
+    seed: i32,
+) -> Vec<f64> {
+    let mut docs: Vec<Vec<u32>> = Vec::with_capacity(doc_lens.len());
+    let mut cur = 0usize;
+    for &len in &doc_lens {
+        let len = len as usize;
+        docs.push(docs_flat[cur..cur + len].iter().map(|&t| t as u32).collect());
+        cur += len;
+    }
+    let v = num_types as usize;
+    let k = num_topics as usize;
+    let corpus = topica::corpus::Corpus {
+        id_to_word: (0..v).map(|i| i.to_string()).collect(),
+        doc_names: vec![String::new(); docs.len()],
+        doc_labels: Vec::new(),
+        doc_freqs: vec![0u32; v],
+        total_freqs: vec![0u32; v],
+        docs,
+    };
+    let mut rng = ChaCha8Rng::seed_from_u64(seed as u64);
+    let alpha_vec = vec![alpha; k];
+    let mut lda = topica::cvb0::Cvb0::new(&corpus, k, &alpha_vec, beta, &mut rng);
+    for _ in 0..(iters as usize) {
+        lda.sweep();
+    }
+    lda.topic_word().into_iter().flatten().collect() // K*V row-major
+}
+
 extendr_module! {
     mod faSTM;
     fn fit_stm;
     fn infer_theta_new;
+    fn lda_init_beta;
 }
