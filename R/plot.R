@@ -328,7 +328,7 @@ plotModels <- function(x, ...) {
 }
 
 #' @exportS3Method plot faSTM_topiccorr
-plot.faSTM_topiccorr <- function(x, ...) plot_topic_network(x$model, cutoff = 0, ...)
+plot.faSTM_topiccorr <- function(x, ...) plot_topic_network(attr(x, "faSTM_model"), cutoff = 0, ...)
 
 #' @rdname stm-compat
 #' @param model A faSTM fit.

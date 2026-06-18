@@ -51,7 +51,9 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
   if (!is.null(word_counts)) settings$dim$wcounts <- list(x = as.numeric(word_counts))
 
   obj <- list(
-    mu = list(mu = raw$mu, gamma = gamma),
+    ## mu$mu as a (K-1) x 1 matrix (single global prior mean) — stm's
+    ## thetaPosterior / simulation code indexes ncol(mu$mu).
+    mu = list(mu = matrix(raw$mu, ncol = 1L), gamma = gamma),
     sigma = sigma,
     ## beta$logbeta is a per-group list for content models (what sage_labels()
     ## and the perspectives plot read). NOTE: faSTM does not reconstruct stm's

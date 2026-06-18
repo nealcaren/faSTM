@@ -33,9 +33,28 @@ sageLabels <- function(model, n = 7) sage_labels(model, n = n)
 
 #' @rdname stm-compat
 #' @export
-topicCorr <- function(model, method = "simple", cutoff = 0.01, ...) {
-  tc <- topic_correlation(model, cutoff = cutoff)
-  structure(c(tc, list(model = model)), class = "faSTM_topiccorr")
+topicCorr <- function(model, method = c("simple", "huge"), cutoff = 0.01, verbose = TRUE, ...) {
+  method <- match.arg(method)
+  cormat <- stats::cor(model$theta)
+  out <- list()
+  if (method == "simple") {
+    adjmat <- ifelse(cormat > cutoff, 1, 0)         # matches stm (diagonal kept)
+    out$posadj <- adjmat
+    out$poscor <- cormat * adjmat
+    out$cor    <- ifelse(abs(cormat) > cutoff, cormat, 0)
+  } else {
+    if (!requireNamespace("huge", quietly = TRUE))
+      stop("topicCorr(method = \"huge\") needs the 'huge' package.", call. = FALSE)
+    Xn  <- huge::huge.npn(model$theta, verbose = verbose)
+    ric <- huge::huge.select(huge::huge(Xn, nlambda = 30, verbose = verbose), verbose = verbose)
+    out$posadj <- ric$refit * (cormat > 0)
+    out$poscor <- ric$refit * (cormat > 0) * cormat
+    out$cor    <- ric$refit * cormat
+  }
+  ## faSTM plot method reads the model from an attribute, so names() == stm's.
+  attr(out, "faSTM_model") <- model
+  class(out) <- c("faSTM_topiccorr", "topicCorr")
+  out
 }
 
 #' @rdname stm-compat
@@ -80,3 +99,46 @@ make.heldout <- function(documents, vocab, N = floor(0.1 * length(documents)),
 #' @rdname stm-compat
 #' @export
 eval.heldout <- function(model, heldout) eval_heldout(model, heldout)
+
+#' @rdname stm-compat
+#' @param nsims Posterior draws.
+#' @param type Accepted for stm compatibility ("Global"/"Local"); both draw from
+#'   the per-document Laplace posterior.
+#' @export
+thetaPosterior <- function(model, nsims = 100, type = "Global", documents = NULL, ...)
+  posterior_theta_samples(model, nsims = nsims)
+
+#' @rdname stm-compat
+#' @param documents Accepted for stm compatibility; faSTM reads its stored corpus.
+#' @param M Top words for coherence/exclusivity.
+#' @export
+topicQuality <- function(model, documents = NULL, M = 10L, ...) {
+  qual <- data.frame(topic = seq_len(ncol(model$theta)),
+                     coherence = semantic_coherence(model, M = M),
+                     exclusivity = exclusivity(model, M = M))
+  if (requireNamespace("ggplot2", quietly = TRUE)) {
+    p <- ggplot2::ggplot(qual, ggplot2::aes(.data$coherence, .data$exclusivity)) +
+      ggplot2::geom_text(ggplot2::aes(label = .data$topic)) +
+      ggplot2::labs(x = "semantic coherence", y = "exclusivity", title = "Topic quality") +
+      ggplot2::theme_minimal(base_size = 12)
+    print(p)
+  }
+  invisible(qual)
+}
+
+#' @rdname stm-compat
+#' @param ... Passed to [LDAvis::serVis()].
+#' @export
+toLDAvis <- function(model, documents = NULL, ...) {
+  if (!requireNamespace("LDAvis", quietly = TRUE))
+    stop("toLDAvis() needs the 'LDAvis' package: install.packages('LDAvis').", call. = FALSE)
+  docs <- if (!is.null(documents)) documents else model$documents
+  if (is.null(docs)) stop("need the fitted documents (refit on a faSTM corpus/dfm).", call. = FALSE)
+  json <- LDAvis::createJSON(
+    phi = exp(model$beta$logbeta[[1]]),                  # K x V topic-word
+    theta = model$theta,                                 # D x K
+    doc.length = vapply(docs, function(m) sum(m[2L, ]), numeric(1)),
+    vocab = model$vocab,
+    term.frequency = model$word_counts)
+  LDAvis::serVis(json, ...)
+}

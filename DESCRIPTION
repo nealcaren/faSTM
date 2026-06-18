@@ -26,6 +26,8 @@ Suggests:
     ggplot2,
     ggrepel,
     glmnet,
+    huge,
+    LDAvis,
     clue,
     quanteda,
     tidytext,

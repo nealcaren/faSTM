@@ -20,13 +20,34 @@
 #' @export
 frex_scores <- function(model, w = 0.5) {
   logbeta <- model$beta$logbeta[[1]]                 # K x V
-  excl <- logbeta - matrix(.lse_cols(logbeta), nrow(logbeta), ncol(logbeta), byrow = TRUE)
-  V <- ncol(logbeta)
+  K <- nrow(logbeta); V <- ncol(logbeta)
+  excl <- logbeta - matrix(.lse_cols(logbeta), K, V, byrow = TRUE)  # log p(topic|word)
+  ## With corpus word counts available, stm James-Stein-shrinks each word's
+  ## topic-exclusivity toward uniform before ranking (stm:::js.estimate); match it.
+  wc <- model$word_counts
+  if (!is.null(wc)) {
+    ep <- exp(excl)                                  # K x V, columns ~ sum to 1
+    ep <- vapply(seq_len(V), function(v) .js_estimate(ep[, v], wc[v]), numeric(K))
+    excl <- log(pmax(ep, .Machine$double.eps))       # safelog
+  }
   freqscore <- t(apply(logbeta, 1L, rank)) / V       # K x V
   exclscore <- t(apply(excl,    1L, rank)) / V
   frex <- 1 / (w / freqscore + (1 - w) / exclscore)
   colnames(frex) <- model$vocab
   frex
+}
+
+# stm:::js.estimate — James-Stein shrinkage of a probability vector toward uniform.
+.js_estimate <- function(prob, ct) {
+  n <- length(prob); unif <- rep(1 / n, n)
+  if (ct <= 1) return(unif)
+  mlvar <- prob * (1 - prob) / (ct - 1)
+  dev <- sum((prob - unif)^2)
+  if (dev == 0) return(prob)
+  lambda <- sum(mlvar) / dev
+  if (is.nan(lambda)) return(unif)
+  lambda <- min(max(lambda, 0), 1)
+  lambda * unif + (1 - lambda) * prob
 }
 
 #' Label topics by top words (prob, FREX, lift, score)
@@ -42,14 +63,17 @@ label_topics <- function(model, n = 7L, frexweight = 0.5) {
   vocab <- model$vocab; wc <- model$word_counts
   topw <- function(scoremat) t(apply(scoremat, 1L, function(s) vocab[order(-s)[seq_len(n)]]))
 
-  prob <- topw(logbeta)
-  frex <- topw(frex_scores(model, w = frexweight))
+  ## stm's labelTopics matrices carry NULL dimnames; strip ours so a direct
+  ## unclass() comparison against stm matches (values already do).
+  bare <- function(m) { dimnames(m) <- NULL; m }
+  prob <- bare(topw(logbeta))
+  frex <- bare(topw(frex_scores(model, w = frexweight)))
   emp  <- log(wc) - log(sum(wc))
-  lift <- topw(logbeta - matrix(emp, K, V, byrow = TRUE))
-  score <- topw(exp(logbeta) * (logbeta - matrix(colMeans(logbeta), K, V, byrow = TRUE)))
+  lift <- bare(topw(logbeta - matrix(emp, K, V, byrow = TRUE)))
+  score <- bare(topw(exp(logbeta) * (logbeta - matrix(colMeans(logbeta), K, V, byrow = TRUE))))
 
   structure(list(prob = prob, frex = frex, lift = lift, score = score,
-                 topics = seq_len(K)),
+                 topics = seq_len(K), topicnums = seq_len(K)),
             class = "faSTM_labels")
 }
 

@@ -42,6 +42,9 @@ export(selectModel)
 export(manyTopics)
 export(make.heldout)
 export(eval.heldout)
+export(thetaPosterior)
+export(topicQuality)
+export(toLDAvis)
 
 # out-of-sample inference
 export(fit_new_documents)
