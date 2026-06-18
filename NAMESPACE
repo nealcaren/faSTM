@@ -32,6 +32,13 @@ export(plot_topic_network)
 export(fit_new_documents)
 export(align_corpus)
 
+# niche / completeness
+export(permutation_test)
+export(topic_lasso)
+export(multi_stm)
+export(read_ldac)
+export(write_ldac)
+
 # model selection
 export(search_k)
 export(make_heldout)
@@ -54,6 +61,9 @@ S3method(print, faSTM_manytopics)
 S3method(plot, faSTM_searchk)
 S3method(plot, faSTM)
 S3method(plot, faSTM_effect)
+S3method(print, faSTM_permtest)
+S3method(print, faSTM_topiclasso)
+S3method(print, faSTM_multistm)
 S3method(summary, faSTM_effect)
 S3method(print, summary.faSTM_effect)
 

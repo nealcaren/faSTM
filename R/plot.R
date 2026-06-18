@@ -169,13 +169,21 @@ plot_topic_network <- function(model, cutoff = 0.03, n = 3L, labeltype = "frex")
               ggplot2::aes(.data$x, .data$y, xend = .data$xend, yend = .data$yend, linewidth = .data$w),
               color = "#9ecae1", alpha = 0.8) +
             ggplot2::scale_linewidth(range = c(0.3, 2.5), guide = "none")
-  g + ggplot2::geom_point(data = nodes, ggplot2::aes(.data$x, .data$y, size = .data$prev),
+  g <- g + ggplot2::geom_point(data = nodes, ggplot2::aes(.data$x, .data$y, size = .data$prev),
                           color = "#2c7fb8") +
     ggplot2::geom_text(data = nodes, ggplot2::aes(.data$x, .data$y, label = .data$topic),
-                       color = "white", size = 3) +
-    ggplot2::geom_text(data = nodes,
-                       ggplot2::aes(.data$x, .data$y, label = paste0("\n\n", .data$label)),
-                       size = 2.8, color = "grey25") +
+                       color = "white", size = 3)
+  ## ggrepel keeps word labels off the nodes/edges; degrade to a fixed offset.
+  g <- if (requireNamespace("ggrepel", quietly = TRUE))
+    g + ggrepel::geom_text_repel(data = nodes,
+          ggplot2::aes(.data$x, .data$y, label = .data$label),
+          size = 2.8, color = "grey25", point.padding = 0.6, box.padding = 0.5,
+          min.segment.length = 0.4, seed = 1)
+  else
+    g + ggplot2::geom_text(data = nodes,
+          ggplot2::aes(.data$x, .data$y, label = paste0("\n\n", .data$label)),
+          size = 2.8, color = "grey25")
+  g +
     ggplot2::scale_size(range = c(4, 12), guide = "none") +
     ggplot2::coord_equal(clip = "off") +
     ggplot2::labs(title = "Topic correlation network") +

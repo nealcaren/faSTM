@@ -117,6 +117,27 @@ test_that("ggplot2 plot methods return ggplot objects", {
   expect_s3_class(plot(eff, "Party", method = "pointestimate"), "ggplot")
 })
 
+test_that("niche: ldac round-trips, multi_stm + permutation_test run", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(5L)
+  # ldac round-trip
+  tmp <- tempfile(fileext = ".ldac")
+  write_ldac(f$corpus$documents[1:5], tmp)
+  expect_equal(unname(read_ldac(tmp)), unname(f$corpus$documents[1:5]))
+  # multi_stm from a small select_model
+  sel <- select_model(f$corpus, K = 5, N = 2, cores = 1, seed = 1)
+  ms <- multi_stm(sel, n = 10)
+  expect_s3_class(ms, "faSTM_multistm")
+  expect_length(ms$stability, 5L)
+  # permutation test (tiny; balanced binary treatment)
+  cc <- f$corpus
+  cc$meta$post <- as.integer(cc$meta$Year >= stats::median(cc$meta$Year))
+  pt <- permutation_test(1:5 ~ post, stm(cc, K = 5, prevalence = ~ post, seed = 1, verbose = FALSE),
+                         "post", cc, nruns = 3, seed = 1)
+  expect_s3_class(pt, "faSTM_permtest")
+  expect_equal(dim(pt$null), c(2L, 5L))
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)

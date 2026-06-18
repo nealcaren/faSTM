@@ -58,12 +58,14 @@ migration.
 
 ## Status
 
-Working: corpus ingestion (quanteda/tidytext/matrix), fast fit (prevalence +
-content, threads), the full inspection layer (labels/FREX/coherence/exclusivity/
-topic correlations), honest `estimateEffect`, posterior draws, and `search_k()`
-for choosing K (held-out likelihood + coherence/exclusivity, parallel across K).
-In progress: modern ggplot2-based plotting (until then, the `stm`-compatible
-object covers it), SVI for covariate models.
+Working: corpus ingestion (quanteda/tidytext/matrix); fast fit (prevalence +
+content, threads); the full inspection layer (labels/FREX/coherence/exclusivity/
+topic correlations, SAGE labels); honest `estimateEffect`; out-of-sample
+inference (`fit_new_documents`); model selection (`search_k`, `select_model`,
+`many_topics`); and a modern **ggplot2** plotting layer (topic summary, covariate
+effects with CIs, search-K diagnostics, topic-correlation network). In progress:
+SVI for covariate models (topica#231), exact spectral-init reproduction
+(topica#234).
 
 ## Install
 
