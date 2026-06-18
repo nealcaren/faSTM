@@ -18,11 +18,19 @@ export(semantic_coherence)
 export(exclusivity)
 export(topic_correlation)
 
+# model selection
+export(search_k)
+export(make_heldout)
+export(eval_heldout)
+
 S3method(as_corpus, faSTM_corpus)
 S3method(as_corpus, dfm)
 S3method(as_corpus, default)
 S3method(print, faSTM_corpus)
 S3method(print, faSTM_labels)
+S3method(print, faSTM_heldout)
+S3method(print, faSTM_searchk)
+S3method(as.data.frame, faSTM_searchk)
 S3method(summary, faSTM_effect)
 S3method(print, summary.faSTM_effect)
 

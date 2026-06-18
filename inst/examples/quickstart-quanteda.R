@@ -16,6 +16,10 @@ dfmat <- data_corpus_inaugural |>
 corpus <- as_corpus(dfmat)          # pulls quanteda docvars (Year, Party, ...) as meta
 print(corpus)
 
+## ---- choose K (held-out likelihood + coherence/exclusivity) ----------------
+cat("\n== search over K (parallel across K) ==\n")
+print(search_k(corpus, K = c(5, 10, 15, 20), prevalence = ~ Party, cores = 4, seed = 1))
+
 ## ---- fit (Rust core; seconds) ----------------------------------------------
 fit <- stm(corpus, K = 10, prevalence = ~ Party, seed = 1, verbose = TRUE)
 

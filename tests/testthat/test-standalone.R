@@ -50,6 +50,21 @@ test_that("honest estimateEffect yields a coefficient per term per topic", {
   expect_true("(Intercept)" %in% rownames(s$tables[[1L]]))
 })
 
+test_that("search_k returns diagnostics per K and a tidy long form", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  dfmat <- quanteda::dfm_trim(
+    quanteda::dfm(quanteda::tokens(quanteda::data_corpus_inaugural, remove_punct = TRUE)),
+    min_termfreq = 5, min_docfreq = 3)
+  corpus <- as_corpus(dfmat)
+  res <- search_k(corpus, K = c(5L, 8L), prevalence = ~ Party, cores = 1L, seed = 1L)
+  expect_s3_class(res, "faSTM_searchk")
+  expect_equal(nrow(res$results), 2L)
+  expect_true(all(c("K", "heldout", "semcoh", "exclusivity", "bound") %in% names(res$results)))
+  expect_true(all(is.finite(res$results$heldout)))
+  long <- as.data.frame(res)
+  expect_true(all(c("K", "metric", "value") %in% names(long)))
+})
+
 test_that("svi + covariates is gated until topica STM-SVI is pinned", {
   skip_if_not_built()
   m <- Matrix::Matrix(matrix(c(2, 1, 0, 1, 0, 3), nrow = 2, byrow = TRUE), sparse = TRUE)

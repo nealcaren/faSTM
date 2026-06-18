@@ -60,9 +60,10 @@ migration.
 
 Working: corpus ingestion (quanteda/tidytext/matrix), fast fit (prevalence +
 content, threads), the full inspection layer (labels/FREX/coherence/exclusivity/
-topic correlations), honest `estimateEffect`, posterior draws. In progress:
-native plotting (until then, the `stm`-compatible object covers it), `searchK`
-with multicore, SVI for covariate models.
+topic correlations), honest `estimateEffect`, posterior draws, and `search_k()`
+for choosing K (held-out likelihood + coherence/exclusivity, parallel across K).
+In progress: modern ggplot2-based plotting (until then, the `stm`-compatible
+object covers it), SVI for covariate models.
 
 ## Install
 
