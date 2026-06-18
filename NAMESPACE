@@ -65,6 +65,7 @@ export(select_model)
 export(select_best)
 export(many_topics)
 
+S3method(stats::makepredictcall, s)
 S3method(as_corpus, faSTM_corpus)
 S3method(as_corpus, dfm)
 S3method(as_corpus, default)

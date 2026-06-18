@@ -46,6 +46,11 @@ jobs:
 
       - uses: r-lib/actions/check-r-package@v2
         with:
+          # The vignette fits ~6 STMs live (minutes per run) and is exercised by
+          # the test suite already, so skip building/checking it in CI — it still
+          # builds locally and for pkgdown.
+          build_args: 'c("--no-manual", "--no-build-vignettes")'
+          args: 'c("--no-manual", "--ignore-vignettes", "--as-cran")'
           # Beta: surface NOTEs/WARNINGs without failing the run yet.
           error-on: '"error"'
           upload-snapshots: true

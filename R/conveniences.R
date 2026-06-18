@@ -21,6 +21,18 @@ s <- function(x, df, ...) {
   obj
 }
 
+# Store the fitted bs knots in the `s(...)` call so prediction on new data
+# (e.g. a difference plot that holds the spline variable at a constant) reuses
+# them instead of rebuilding the basis with the wrong df. Mirrors stm:::makepredictcall.s
+# / splines:::makepredictcall.bs. Registered via S3method(makepredictcall, s).
+#' @exportS3Method stats::makepredictcall s
+makepredictcall.s <- function(var, call) {
+  at <- attributes(var)[c("degree", "knots", "Boundary.knots", "intercept")]
+  xxx <- call[1L:2L]
+  xxx[names(at)] <- at
+  xxx
+}
+
 #' Residual dispersion check (is K large enough?)
 #'
 #' Multinomial residual dispersion (Taddy 2012; port of `stm::checkResiduals`).
