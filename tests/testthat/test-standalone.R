@@ -176,6 +176,17 @@ test_that("difference plot with a spline term reuses fitted knots (makepredictca
   expect_s3_class(p, "ggplot")
 })
 
+test_that("stm-wishlist: topic_proportions (#269) + make_dt meta guard (#247)", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  tp <- topic_proportions(f$fit)
+  expect_true(all(c("topic", "proportion", "label") %in% names(tp)))
+  expect_equal(sum(tp$proportion), 1, tolerance = 1e-8)
+  expect_true(all(diff(tp$proportion) <= 0))           # sorted descending
+  expect_silent(make_dt(f$fit, f$corpus$meta))
+  expect_error(make_dt(f$fit, f$corpus$meta[1:3, ]), "rows but the model")
+})
+
 test_that("stm-wishlist: sage_labels frexweight + estimateEffect combine topics", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(6L)

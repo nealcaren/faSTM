@@ -81,7 +81,15 @@ make_dt <- function(model, meta = NULL) {
   theta <- model$theta
   out <- data.frame(document = seq_len(nrow(theta)), theta)
   names(out)[-1L] <- paste0("Topic", seq_len(ncol(theta)))
-  if (!is.null(meta)) out <- cbind(out, meta)
+  if (!is.null(meta)) {
+    ## guard against silently recycling mismatched metadata (stm issue #247:
+    ## prepDocuments can drop rows, so meta and theta can fall out of sync).
+    if (NROW(meta) != nrow(theta))
+      stop("meta has ", NROW(meta), " rows but the model has ", nrow(theta),
+           " documents; align them (e.g. use the prepDocuments output's meta).",
+           call. = FALSE)
+    out <- cbind(out, meta)
+  }
   out
 }
 

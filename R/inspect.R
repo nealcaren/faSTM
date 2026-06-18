@@ -50,6 +50,24 @@ frex_scores <- function(model, w = 0.5) {
   lambda * unif + (1 - lambda) * prob
 }
 
+#' Expected topic proportions (the numbers behind the summary plot)
+#'
+#' Returns the corpus-level expected topic proportions — the mean of theta per
+#' topic — as a numeric table, so you can read off the values stm's
+#' `plot(type = "summary")` displays (stm issue #269).
+#'
+#' @param model A faSTM fit.
+#' @param nlabel Top FREX words to attach as a topic label.
+#' @return A data.frame with `topic`, `proportion`, `label`, sorted by proportion.
+#' @export
+topic_proportions <- function(model, nlabel = 3L) {
+  prop <- colMeans(model$theta)
+  lab <- apply(label_topics(model, n = nlabel)[["frex"]], 1L, paste, collapse = ", ")
+  out <- data.frame(topic = seq_along(prop), proportion = prop, label = lab,
+                    stringsAsFactors = FALSE)
+  out[order(-out$proportion), , drop = FALSE]
+}
+
 #' Top terms per topic, with their numeric scores (tidy)
 #'
 #' Like [label_topics()] but returns the *values* behind the ranking, not just
