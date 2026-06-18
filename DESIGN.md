@@ -1,10 +1,24 @@
 # faSTM — design
 
-A fast fitting backend for structural topic models that is **drop-in compatible
-with the R `stm` package**. faSTM does *not* fork stm and does *not* reimplement
-its ecosystem. It swaps in a Rust fitter (from
-[`topica`](https://github.com/nealcaren/topica)) and returns an object that
-stm's own post-fit functions read unmodified.
+> **Positioning (updated 2026-06-18).** faSTM is now a **standalone, modern
+> successor to `stm`**, not a backend plugin. `stm` is in maintenance-only mode
+> (last feature release 2023, 100+ open issues), so chaining to it as a hard
+> dependency was a liability. faSTM has **no dependency on `stm`** (even
+> optional): it ingests prepared text from `quanteda`/`tidytext`, fits in Rust,
+> and ships its own inspection layer (labels/FREX/coherence/exclusivity/topic
+> correlations) and honest `estimateEffect`. It keeps emitting an `stm`-shaped
+> S3 object purely as a **migration on-ramp** (so existing scripts and stm's own
+> `plot`/`toLDAvis` keep working), not as a runtime dependency. Text prep is
+> delegated to quanteda/tidytext (don't reinvent `textProcessor`). The sections
+> below retain the original engine/binding design, which is unchanged.
+
+---
+
+## Engine & binding (unchanged from the backend design)
+
+The Rust fitter (from [`topica`](https://github.com/nealcaren/topica)) returns an
+object that stm's own post-fit functions can also read — which we exploit for
+migration, while providing native equivalents so stm is never required.
 
 ## The one architectural fact everything rests on
 

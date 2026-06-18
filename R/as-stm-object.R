@@ -8,7 +8,8 @@
 #'
 #' @keywords internal
 #' @noRd
-as_stm_object <- function(raw, vocab, prevalence, content, call, settings) {
+as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
+                          word_counts = NULL, dtm = NULL, documents = NULL) {
   K <- raw$num_topics
   V <- raw$num_types
   D <- raw$num_docs
@@ -64,6 +65,11 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings) {
     eta = eta,
     invsigma = solve(sigma),
     nu = nu,                 # faSTM extension: per-doc posterior cov for effects
+    ## faSTM extensions: corpus carried with the fit so inspection (FREX,
+    ## coherence, exclusivity) is self-contained and needs no re-supply.
+    word_counts = word_counts,
+    dtm = dtm,
+    documents = documents,
     call = call
   )
   class(obj) <- c("faSTM", "STM")

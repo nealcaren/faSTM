@@ -53,10 +53,23 @@ stm <- function(documents, vocab, K,
   gamma.prior <- match.arg(gamma.prior)
   inference <- match.arg(inference)
 
-  ## ---- input checks ------------------------------------------------------
-  stopifnot(is.list(documents), is.character(vocab), length(vocab) >= 1L)
-  D <- length(documents)
-  V <- length(vocab)
+  ## ---- ingest: accept a faSTM corpus / quanteda dfm / matrix, or an
+  ##      stm-style (documents list + vocab) input ---------------------------
+  if (inherits(documents, "faSTM_corpus") || inherits(documents, "dfm") ||
+      is.matrix(documents) || methods::is(documents, "Matrix")) {
+    corpus <- as_corpus(documents, meta = data)
+  } else if (is.list(documents)) {
+    if (is.null(vocab)) stop("vocab is required when `documents` is a documents list.",
+                             call. = FALSE)
+    corpus <- .stm_documents_to_corpus(documents, vocab, data)
+  } else {
+    stop("`documents` must be a faSTM corpus, a quanteda dfm, a document-term ",
+         "matrix, or an stm-style documents list (with `vocab`).", call. = FALSE)
+  }
+  documents <- corpus$documents; vocab <- corpus$vocab
+  if (is.null(data)) data <- corpus$meta
+  D <- length(documents); V <- length(vocab)
+  dtm <- .documents_to_dtm(documents, V)
 
   ## ---- documents -> flat 0-based token stream ----------------------------
   ## stm doc = 2 x n integer matrix (1-based id; count). topica wants a token
@@ -115,9 +128,29 @@ stm <- function(documents, vocab, K,
 
   as_stm_object(raw, vocab = vocab,
                 prevalence = prev, content = cont,
+                word_counts = corpus$word_counts, dtm = dtm,
+                documents = documents,
                 call = match.call(), settings = list(
                   dim = list(K = as.integer(K), V = V, N = D,
                              A = num_groups),
                   init = list(mode = init.type),
                   inference = inference))
+}
+
+# stm-style documents list (+ vocab, meta) -> faSTM_corpus, via a dtm round-trip
+# so empty-doc dropping / term re-indexing matches the corpus path.
+.stm_documents_to_corpus <- function(documents, vocab, meta) {
+  dtm <- .documents_to_dtm(documents, length(vocab))
+  colnames(dtm) <- vocab
+  .corpus_from_matrix(dtm, vocab, meta)
+}
+
+# per-document 2xn integer matrices -> D x V sparse document-term matrix
+.documents_to_dtm <- function(documents, V) {
+  i <- integer(0); j <- integer(0); x <- integer(0)
+  for (d in seq_along(documents)) {
+    m <- documents[[d]]
+    i <- c(i, rep.int(d, ncol(m))); j <- c(j, m[1L, ]); x <- c(x, m[2L, ])
+  }
+  Matrix::sparseMatrix(i = i, j = j, x = x, dims = c(length(documents), V))
 }

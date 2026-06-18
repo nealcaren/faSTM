@@ -1,28 +1,30 @@
 Package: faSTM
-Title: Fast Structural Topic Models (Rust Backend, Drop-in for 'stm')
+Title: Fast Structural Topic Models
 Version: 0.0.0.9000
 Authors@R:
     person("Neal", "Caren", email = "neal.caren@unc.edu", role = c("aut", "cre"))
-Description: A fast, drop-in fitting backend for structural topic models that
-    returns an object compatible with the 'stm' package. faSTM fits the
-    logistic-normal STM (with prevalence and content covariates) via the
-    Rust core from 'topica', then hands the result back as an 'stm'-shaped
-    S3 object so that stm's own labelTopics(), plot(), findThoughts(),
-    sageLabels(), and toLDAvis() work unmodified. It also ships its own
-    estimateEffect() implementing the method-of-composition (honest
-    per-document posterior propagation). Text preparation is delegated to
-    'stm' (textProcessor(), prepDocuments()). An opt-in stochastic
-    variational ("svi") inference path scales fitting to large corpora.
+Description: A fast, modern implementation of the Structural Topic Model. faSTM
+    fits the logistic-normal STM (with prevalence and content covariates) via a
+    Rust core, in seconds where the original 'stm' package takes minutes, and
+    scales to large corpora through an opt-in stochastic-variational path. It is
+    self-contained: text preparation is read from 'quanteda' or 'tidytext'
+    objects, model inspection (labelTopics with FREX/lift/score, findThoughts,
+    semantic coherence, exclusivity, topic correlations) and an honest
+    estimateEffect() (method-of-composition posterior propagation) are built in.
+    The fitted object is structurally compatible with 'stm' so existing analyses
+    migrate with minimal changes.
 License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 SystemRequirements: Cargo (Rust's package manager), rustc
 Imports:
-    stm,
     MASS,
+    Matrix,
     stats
 Suggests:
+    quanteda,
+    tidytext,
     testthat (>= 3.0.0)
 Config/rextendr/version: 0.3.1
 Config/testthat/edition: 3

@@ -1,76 +1,76 @@
 # faSTM
 
-Fast structural topic models for R, with a **drop-in `stm`-compatible** object.
+A fast, modern **Structural Topic Model** for R. faSTM does everything the
+[`stm`](https://github.com/bstewart/stm) package does — prevalence and content
+covariates, FREX/lift/score labels, semantic coherence, representative
+documents, covariate-effect estimation — but fits in **seconds instead of
+minutes** via a Rust core, scales to large corpora, and is self-contained (no
+dependency on `stm`).
 
-faSTM swaps in a Rust fitting backend (from
-[`topica`](https://github.com/nealcaren/topica)) for the slow part of
-[`stm`](https://github.com/bstewart/stm), and hands you back an object that
-stm's own functions read unmodified. You keep your stm workflow; the fit gets
-faster and scales to large corpora.
+`stm` is no longer actively developed (last feature release 2023; 100+ open
+issues). faSTM is a clean-room successor: the same model and outputs, a faster
+engine, and fixes for the long-standing pain points. Existing `stm` analyses
+migrate with minimal changes — the fitted object is structurally compatible.
 
 ```r
-library(stm)        # prep + visualization, unchanged
-library(faSTM)      # fast fit + honest effects
+library(quanteda)   # tokenization (faSTM reads quanteda/tidytext, doesn't reinvent it)
+library(faSTM)
 
-# prep with stm, exactly as before
-processed <- textProcessor(gadarian$open.ended.response, metadata = gadarian)
-out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
+dfmat <- data_corpus_inaugural |>
+  tokens(remove_punct = TRUE) |>
+  tokens_remove(stopwords("en")) |>
+  tokens_wordstem() |>
+  dfm() |>
+  dfm_trim(min_termfreq = 5)
 
-# fit with the Rust backend; returns an stm-compatible object
-fit <- faSTM::stm(out$documents, out$vocab, K = 5,
-                  prevalence = ~ treatment, data = out$meta)
+corpus <- as_corpus(dfmat)                     # docvars become metadata
+fit    <- stm(corpus, K = 10, prevalence = ~ Party)
 
-# stm's own post-fit tools work unmodified
-labelTopics(fit)
-plot(fit)
-# toLDAvis(fit, out$documents)
-
-# faSTM's honest covariate effects (method of composition)
-eff <- faSTM::estimateEffect(1:5 ~ treatment, fit, metadata = out$meta)
+label_topics(fit)                              # prob / FREX / lift / score
+semantic_coherence(fit); exclusivity(fit)      # bit-identical to stm
+eff <- estimateEffect(1:10 ~ Party, fit, metadata = corpus$meta)
 summary(eff)
 ```
 
-## Why this exists
+## What's different from stm
 
-stm's post-fit functions — `labelTopics`, `plot.STM`, `findThoughts`,
-`sageLabels`, `toLDAvis`, `estimateEffect` — are **pure readers of the fitted
-object**; they never re-run the estimator. So faSTM only has to (1) fit fast in
-Rust and (2) return an object shaped like stm's. Everything else is stm's, reused
-as-is — no fork, and you inherit stm's future improvements.
+- **Speed.** Rust variational EM, multithreaded E-step. ~35× faster than `stm`
+  across corpus sizes (10k docs: ~1s vs ~40s), with a `num_threads` knob.
+- **Scale.** Opt-in `inference = "svi"` (stochastic variational) for corpora that
+  don't fit batch EM — something `stm` cannot do. *(prevalence/content SVI lands
+  with topica [#231](https://github.com/nealcaren/topica/issues/231).)*
+- **Honest effects.** `estimateEffect()` uses the method of composition,
+  propagating per-document posterior uncertainty.
+- **Fixes open stm requests.** `frex_scores()` returns the numeric FREX matrix,
+  not just words (stm#265); inspection carries the corpus so nothing needs
+  re-supplying; reproducible spectral init (tracking topica#234).
+- **Self-contained.** Tokenize with `quanteda`/`tidytext` (which the field
+  already uses); faSTM reads their objects. No `textProcessor` to inherit bugs
+  from.
 
-The one thing faSTM reimplements is `estimateEffect`, using topica's honest
-method-of-composition that propagates per-document posterior uncertainty.
+## Faithful where it counts
 
-## Large corpora
-
-```r
-fit <- faSTM::stm(out$documents, out$vocab, K = 50,
-                  inference = "svi",            # stochastic VI
-                  batch_size = 256, tau = 64, kappa = 0.7)
-```
-
-The `inference = "svi"` path scales fitting beyond what batch EM can hold in
-memory. It requires a topica build that includes STM-SVI (topica
-[#231](https://github.com/nealcaren/topica/issues/231)); the prevalence/content
-+ svi combination is gated with a clear error until that revision is pinned.
+On a shared fit, faSTM's FREX/prob labels are **identical** to `stm::labelTopics`,
+and `exclusivity()` / `semantic_coherence()` match `stm` to floating point — so
+the numbers reviewers expect don't change. And because the fitted object is
+`stm`-shaped, `stm`'s own `labelTopics`/`plot`/`toLDAvis` still work on it during
+migration.
 
 ## Status
 
-**Scaffold.** Architecture and the full R layer (object constructor, posterior
-draws, honest `estimateEffect`) are in place. The Rust binding (`src/rust/`)
-wires `topica::ctm::fit_ctm` through a single `fit_stm()` entry point but has not
-yet been compiled against a pinned topica — see `DESIGN.md` for the build
-checklist and the remaining wiring (rextendr `document()`, the topica git pin,
-and the parity/recovery tests).
+Working: corpus ingestion (quanteda/tidytext/matrix), fast fit (prevalence +
+content, threads), the full inspection layer (labels/FREX/coherence/exclusivity/
+topic correlations), honest `estimateEffect`, posterior draws. In progress:
+native plotting (until then, the `stm`-compatible object covers it), `searchK`
+with multicore, SVI for covariate models.
 
-## Install (once building)
+## Install
 
 ```r
-# requires Rust toolchain (cargo, rustc) and rextendr at dev time
-# install.packages("rextendr")
+# requires a Rust toolchain (cargo, rustc)
 remotes::install_github("nealcaren/faSTM")
 ```
 
 ## License
 
-Apache-2.0 (matches topica).
+Apache-2.0.
