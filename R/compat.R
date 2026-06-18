@@ -57,9 +57,7 @@ topicCorr <- function(model, method = c("simple", "huge"), cutoff = 0.01, verbos
   out
 }
 
-#' @rdname stm-compat
-#' @export
-fitNewDocuments <- function(model, documents, ...) fit_new_documents(model, documents)
+## fitNewDocuments() is defined in predict.R (full stm-shaped signature).
 
 #' @rdname stm-compat
 #' @export
@@ -102,11 +100,28 @@ eval.heldout <- function(model, heldout) eval_heldout(model, heldout)
 
 #' @rdname stm-compat
 #' @param nsims Posterior draws.
-#' @param type Accepted for stm compatibility ("Global"/"Local"); both draw from
-#'   the per-document Laplace posterior.
+#' @param type `"Global"` draws from one shared covariance (the averaged
+#'   per-document Laplace cov); `"Local"` draws from each document's own cov and
+#'   requires `documents` (matches stm's semantics).
 #' @export
-thetaPosterior <- function(model, nsims = 100, type = "Global", documents = NULL, ...)
-  posterior_theta_samples(model, nsims = nsims)
+thetaPosterior <- function(model, nsims = 100, type = c("Global", "Local"),
+                           documents = NULL, ...) {
+  type <- match.arg(type)
+  if (type == "Local" && is.null(documents))
+    stop("Documents must be provided to perform local theta uncertainty calculations.",
+         call. = FALSE)
+  if (type == "Local")
+    return(posterior_theta_samples(model, nsims = nsims))  # per-document nu
+  ## Global: one shared covariance (the average per-document Laplace cov), the
+  ## cheap approximation stm's thetapost.global recovers as Sigma - cov(eta).
+  eta <- model$eta; D <- nrow(eta)
+  Sig <- Reduce(`+`, model$nu) / D
+  lapply(seq_len(nsims), function(s) {
+    etas <- t(vapply(seq_len(D), function(d) MASS::mvrnorm(1L, eta[d, ], Sig),
+                     numeric(ncol(eta))))
+    .softmax_rows(cbind(etas, 0))
+  })
+}
 
 #' @rdname stm-compat
 #' @param documents Accepted for stm compatibility; faSTM reads its stored corpus.

@@ -44,21 +44,45 @@
 stm <- function(documents, vocab, K,
                 prevalence = NULL, content = NULL, data = NULL,
                 max.em.its = 500L, emtol = 1e-5,
-                init.type = c("Spectral", "Random"),
-                init.beta = NULL,
+                init.type = c("Spectral", "Random", "LDA", "Custom"),
+                init.beta = NULL, model = NULL,
                 gamma.prior = c("Pooled", "L1"), gamma.l1.alpha = 1e-3,
                 sigma.prior = 0,
                 seed = 1L,
                 inference = c("batch", "svi"),
                 batch_size = 256L, tau = 64, kappa = 0.7,
                 num_threads = 0L,
-                verbose = TRUE) {
+                verbose = TRUE, ...) {
 
   init.type <- match.arg(init.type)
   gamma.prior <- match.arg(gamma.prior)
   inference <- match.arg(inference)
   if (!is.numeric(K) || length(K) != 1L || K < 2L || K != as.integer(K))
     stop("K must be a single integer >= 2.", call. = FALSE)
+
+  ## ---- stm-compatibility: accept stm-only controls; warn on genuine no-ops --
+  dots <- list(...)
+  if (isFALSE(dots$interactions))
+    warning("content interactions=FALSE is not supported; faSTM's SAGE content ",
+            "model always includes topic-by-covariate interactions.", call. = FALSE)
+  if (!is.null(dots$kappa.prior) && !identical(dots$kappa.prior, "L1"))
+    warning("kappa.prior = '", dots$kappa.prior, "' is not honored; faSTM uses ",
+            "topica's content (SAGE) regularization.", call. = FALSE)
+  ## LDAbeta/reportevery/control/etc. are accepted and ignored (no effect on the
+  ## Rust fit); they exist so stm scripts run unmodified.
+
+  ## init.type: 'Custom' seeds beta from `init.beta` (or a supplied `model`);
+  ## 'LDA' has no faSTM initializer, so fall back to Spectral with a warning.
+  if (init.type == "Custom" && is.null(init.beta)) {
+    if (is.null(model) || is.null(model$beta$logbeta))
+      stop("init.type = 'Custom' needs `init.beta` or a fitted `model`.", call. = FALSE)
+    init.beta <- exp(model$beta$logbeta[[1L]])
+  }
+  if (init.type == "LDA") {
+    warning("init.type = 'LDA' is not implemented in faSTM; using 'Spectral'.",
+            call. = FALSE)
+    init.type <- "Spectral"
+  }
 
   ## ---- ingest: accept a faSTM corpus / quanteda dfm / matrix, or an
   ##      stm-style (documents list + vocab) input ---------------------------

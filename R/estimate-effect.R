@@ -19,11 +19,17 @@
 #'   topic.
 #' @export
 estimateEffect <- function(formula, stmobj, metadata = meta,
-                           uncertainty = c("Global", "None"),
-                           nsims = 100L, seed = NULL, meta = NULL) {
+                           uncertainty = c("Global", "None", "Local"),
+                           nsims = 100L, seed = NULL, meta = NULL,
+                           documents = NULL, ...) {
   stopifnot(inherits(stmobj, "faSTM"))
   if (is.null(metadata)) stop("supply document metadata via `metadata=` (or `meta=`).", call. = FALSE)
   uncertainty <- match.arg(uncertainty)
+  ## faSTM's method of composition draws from each document's own Laplace
+  ## covariance (nu) — i.e. stm's "Local", the accurate option. "Global" is
+  ## accepted and uses the same per-document draws (faSTM does not fall back to
+  ## stm's cheaper shared-covariance approximation). `documents` is accepted for
+  ## stm signature compatibility; faSTM reads nu from the fit.
 
   K <- ncol(stmobj$theta)
   topics <- .formula_topics(formula, K)
