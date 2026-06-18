@@ -120,6 +120,11 @@ stm <- function(documents, vocab, K,
   cont <- .make_content(content, data, D)     # NULL or list(group = 0-based, levels)
   content_groups <- if (is.null(cont)) NULL else as.integer(cont$group)
   num_groups <- if (is.null(cont)) 1L else length(cont$levels)
+  ## Be explicit (not silent) when several content covariates are crossed — this
+  ## is a deliberate extension beyond stm, which allows only one content variable.
+  if (!is.null(cont) && length(cont$vars) > 1L && verbose)
+    message(sprintf("faSTM: crossing %d content covariates (%s) into a saturated content model with %d groups.",
+                    length(cont$vars), paste(cont$vars, collapse = ", "), num_groups))
 
   ## ---- svi gating --------------------------------------------------------
   if (inference == "svi" && (!is.null(prev) || !is.null(cont))) {

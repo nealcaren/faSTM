@@ -257,12 +257,27 @@ test_that("init.beta starts the fit from a supplied initialization", {
   expect_equal(exp(m0$beta$logbeta[[1]]), B, tolerance = 1e-8)
 })
 
-test_that("input validation rejects bad K, counts, and multi-var content", {
+test_that("multiple content covariates fit a crossed SAGE model + marginal recovery", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(5L)
+  f$corpus$meta$era <- factor(ifelse(f$corpus$meta$Year < 1900, "pre", "post"))
+  np <- nlevels(factor(f$corpus$meta$Party)); ne <- 2L
+  fc <- stm(f$corpus, K = 4, content = ~ Party + era, data = f$corpus$meta,
+            seed = 1, verbose = FALSE)
+  # one topic-word distribution per *observed* Party x era combination
+  expect_equal(length(fc$beta$logbeta), length(fc$settings$covariates$yvarlevels))
+  expect_true(length(fc$beta$logbeta) <= np * ne)
+  expect_equal(fc$settings$covariates$contentvars, c("Party", "era"))
+  # marginal recovery by one covariate
+  ct <- content_topics(fc, by = "era", n = 4)
+  expect_named(ct, levels(f$corpus$meta$era))
+  expect_equal(dim(ct[["pre"]]), c(4L, 4L))
+})
+
+test_that("input validation rejects bad K and counts", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(5L)
   expect_error(stm(f$corpus, K = 1, verbose = FALSE), "K must be")
-  expect_error(stm(f$corpus, K = 4, content = ~ Party + Year, data = f$corpus$meta,
-                   verbose = FALSE), "one variable")
   m <- methods::as(quanteda::dfm(quanteda::tokens(quanteda::data_corpus_inaugural)), "CsparseMatrix")
   mneg <- m; mneg@x[1] <- -1
   expect_error(as_corpus(mneg), "non-negative")

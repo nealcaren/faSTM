@@ -86,7 +86,11 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
     settings = c(settings, list(
       covariates = list(X = if (is.null(prevalence)) NULL else prevalence$X,
                         betaindex = if (is.null(content)) rep(1L, D) else content$group + 1L,
-                        yvarlevels = if (is.null(content)) NULL else content$levels),
+                        yvarlevels = if (is.null(content)) NULL else content$levels,
+                        ## content covariate names + per-group level table (for
+                        ## marginal recovery when content is crossed over >1 var)
+                        contentvars = if (is.null(content)) NULL else content$vars,
+                        contenttable = if (is.null(content)) NULL else content$group_table),
       gamma = list(prior = "Pooled"),
       convergence = list(bound = raw$bound_history))),
     vocab = vocab,
@@ -139,14 +143,33 @@ as_stm_object <- function(raw, vocab, prevalence, content, call, settings,
   if (inherits(content, "formula")) {
     if (is.null(data)) stop("content formula needs `data`.", call. = FALSE)
     mf <- stats::model.frame(content, data = data)
-    if (ncol(mf) != 1L)
-      stop("content can only contain one variable (got ", ncol(mf), ").", call. = FALSE)
-    v <- mf[[1L]]
+    ## SAGE content is categorical; numeric content covariates become one level
+    ## per value, which is almost never intended (stm issue #245).
+    num <- vapply(mf, function(z) is.numeric(z) && length(unique(z)) > 2L, logical(1))
+    if (any(num))
+      warning("content covariate(s) ", paste(names(mf)[num], collapse = ", "),
+              " are numeric; SAGE treats them as categorical (one level per value). ",
+              "Bin/factor them first if that isn't intended (cf. stm #245).", call. = FALSE)
+    comps <- lapply(mf, as.factor)
+    vars  <- names(mf)
   } else {
-    v <- content
+    comps <- list(as.factor(content)); vars <- "content"
   }
-  f <- as.factor(v)
+  ## One content covariate: as before. Several: the fully crossed (saturated)
+  ## content model — each combination of levels gets its own SAGE topic-word
+  ## distribution (topica fits a single content factor, so the cross is how
+  ## faSTM honors multiple content covariates; strictly more flexible than an
+  ## additive per-covariate kappa, which needs topica core support).
+  f <- if (length(comps) == 1L) comps[[1L]]
+       else droplevels(interaction(comps, sep = ":", drop = TRUE))
   if (length(f) != D) stop("content variable has length ", length(f),
                            ", expected ", D, call. = FALSE)
-  list(group = as.integer(f) - 1L, levels = levels(f)) # 0-based for Rust
+  ## per-crossed-group component levels (for marginal recovery by one covariate);
+  ## built from the data so it is robust to ":" inside level names.
+  gt <- data.frame(group = as.integer(f),
+                   stats::setNames(lapply(comps, as.character), vars),
+                   stringsAsFactors = FALSE, check.names = FALSE)
+  gt <- unique(gt); gt <- gt[order(gt$group), , drop = FALSE]; rownames(gt) <- NULL
+  list(group = as.integer(f) - 1L, levels = levels(f),   # 0-based for Rust
+       vars = vars, group_table = gt)
 }

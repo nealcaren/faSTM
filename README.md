@@ -20,7 +20,9 @@ topics and numbering, not a relabeling of `stm`'s. For a guaranteed
 `stm(..., init.beta = )`. All four `init.type`s are supported — `"Spectral"`,
 `"Random"`, `"LDA"` (seeded from a CVB0 LDA), and `"Custom"`. Content (SAGE)
 models are fully stm-shaped — `stm::sageLabels()`/`labelTopics()` work on them —
-which requires `topica >= 0.24.1`.
+which requires `topica >= 0.24.1`. Unlike stm, `content = ~ g + h` is allowed:
+faSTM fits the fully crossed (saturated) content model, and `content_topics()`
+recovers the per-covariate marginal vocabulary.
 
 ```r
 library(quanteda)   # tokenization (faSTM reads quanteda/tidytext, doesn't reinvent it)

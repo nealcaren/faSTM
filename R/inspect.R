@@ -50,6 +50,55 @@ frex_scores <- function(model, w = 0.5) {
   lambda * unif + (1 - lambda) * prob
 }
 
+#' Marginal content words by one content covariate
+#'
+#' For a multi-covariate (crossed) content model, recovers the topic-word labels
+#' for each level of a single content covariate, averaging the crossed
+#' topic-word distributions over the other covariate(s). Lets you read off how
+#' topics' vocabulary shifts with one covariate while marginalizing the rest.
+#'
+#' @param model A content (SAGE) faSTM fit.
+#' @param by Content covariate name to marginalize *to* (default: the first).
+#' @param n Words per topic.
+#' @param type `"prob"`, `"lift"`, or `"frex"`.
+#' @return A named list (one entry per level of `by`) of K x `n` word matrices.
+#' @export
+content_topics <- function(model, by = NULL, n = 7L,
+                           type = c("prob", "lift", "frex")) {
+  type <- match.arg(type)
+  lb <- model$beta$logbeta
+  if (length(lb) < 2L)
+    stop("content_topics() needs a content model (stm(..., content = ~ ...)).", call. = FALSE)
+  gt <- model$settings$covariates$contenttable
+  vars <- model$settings$covariates$contentvars
+  if (is.null(gt) || is.null(vars))
+    stop("this fit lacks content covariate metadata; refit with faSTM >= this version.",
+         call. = FALSE)
+  if (is.null(by)) by <- vars[1L]
+  if (!by %in% vars) stop("`by` must be one of: ", paste(vars, collapse = ", "), call. = FALSE)
+
+  vocab <- model$vocab; K <- nrow(lb[[1]]); V <- ncol(lb[[1]]); wc <- model$word_counts
+  bylevels <- unique(gt[[by]])
+  scorer <- function(bp) {                      # bp: K x V probabilities
+    lg <- log(bp)
+    switch(type,
+      prob = lg,
+      lift = lg - matrix(log(wc) - log(sum(wc)), K, V, byrow = TRUE),
+      frex = {
+        excl <- lg - matrix(.lse_cols(lg), K, V, byrow = TRUE)
+        1 / (0.5 / (t(apply(lg, 1L, rank)) / V) + 0.5 / (t(apply(excl, 1L, rank)) / V))
+      })
+  }
+  out <- lapply(bylevels, function(l) {
+    gs <- gt$group[gt[[by]] == l]                                   # crossed groups w/ this level
+    bp <- Reduce(`+`, lapply(gs, function(g) exp(lb[[g]]))) / length(gs)
+    sc <- scorer(bp)
+    t(apply(sc, 1L, function(r) vocab[order(-r)[seq_len(n)]]))      # K x n
+  })
+  names(out) <- bylevels
+  out
+}
+
 #' Expected topic proportions (the numbers behind the summary plot)
 #'
 #' Returns the corpus-level expected topic proportions — the mean of theta per
