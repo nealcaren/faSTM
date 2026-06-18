@@ -372,3 +372,89 @@ plotQuote <- function(sentences, width = 40, main = NULL, ...) {
     ggplot2::labs(title = main, x = NULL, y = NULL) +
     ggplot2::theme_void(base_size = 12)
 }
+
+#' Extract estimateEffect estimates as a tidy data.frame (no plotting)
+#'
+#' Returns the point estimates, standard errors and confidence bounds that
+#' [plot.faSTM_effect()] would draw, so you can build a custom plot or table
+#' (stm issue #83). Same arguments as the plot method.
+#'
+#' @param x A `faSTM_effect` (from [estimateEffect()]).
+#' @param covariate Covariate name.
+#' @param method `"pointestimate"`, `"continuous"`, or `"difference"`.
+#' @param topics Topics to include.
+#' @param cov.value1,cov.value2,values Levels/values for difference or continuous range.
+#' @param moderator,moderator.value Optional held-fixed interaction term.
+#' @param npoints Grid size for `"continuous"`.
+#' @param ci Confidence level for `lower`/`upper`.
+#' @return A data.frame with `topic`, `value`, `est`, `se`, `lower`, `upper`.
+#' @export
+effect_estimates <- function(x, covariate,
+                             method = c("pointestimate", "continuous", "difference"),
+                             topics = x$topics, cov.value1 = NULL, cov.value2 = NULL,
+                             values = NULL, moderator = NULL, moderator.value = NULL,
+                             npoints = 50L, ci = 0.95) {
+  stopifnot(inherits(x, "faSTM_effect"))
+  method <- match.arg(method)
+  meta <- x$metadata
+  if (!covariate %in% names(meta)) stop("`covariate` not found in the effect metadata.", call. = FALSE)
+  if (is.null(values) && !is.null(cov.value1)) values <- c(cov.value1, cov.value2)
+  fixed <- if (!is.null(moderator)) stats::setNames(list(moderator.value), moderator) else list()
+  is_factor <- is.factor(meta[[covariate]]) || is.character(meta[[covariate]])
+  z <- stats::qt(1 - (1 - ci) / 2, df = x$coefficients[[1]]$df)
+  df <- switch(method,
+    pointestimate = {
+      if (!is_factor) stop("pointestimate is for categorical covariates.", call. = FALSE)
+      .effect_grid(x, covariate, levels(as.factor(meta[[covariate]])), topics, fixed)
+    },
+    continuous = {
+      if (is_factor) stop("continuous is for numeric covariates.", call. = FALSE)
+      rng <- if (is.null(values)) range(meta[[covariate]]) else range(values)
+      .effect_grid(x, covariate, seq(rng[1L], rng[2L], length.out = npoints), topics, fixed)
+    },
+    difference = {
+      if (is.null(values) || length(values) != 2L)
+        stop("difference needs values = c(high, low).", call. = FALSE)
+      .effect_difference(x, covariate, values, topics, fixed)
+    })
+  df$lower <- df$est - z * df$se
+  df$upper <- df$est + z * df$se
+  rownames(df) <- NULL
+  df
+}
+
+#' Topic-correlation network as an igraph graph
+#'
+#' Exports the positive-correlation topic network as an `igraph` object (stm
+#' issue #242), with topic prevalence and FREX labels as vertex attributes and
+#' the positive correlations as edge weights — ready for igraph/ggraph layouts.
+#'
+#' @param x A `faSTM_topiccorr` (from [topicCorr()]) or a faSTM fit.
+#' @param model The fit, if `x` is a bare correlation object (for vertex prevalence/labels).
+#' @param nlabel Top FREX words per topic for the vertex label.
+#' @return An undirected `igraph` graph.
+#' @export
+topic_corr_graph <- function(x, model = NULL, nlabel = 3L) {
+  if (!requireNamespace("igraph", quietly = TRUE))
+    stop("topic_corr_graph() needs the 'igraph' package.", call. = FALSE)
+  if (inherits(x, "faSTM_topiccorr")) {
+    tc <- x; if (is.null(model)) model <- attr(x, "faSTM_model")
+  } else if (inherits(x, "faSTM")) {
+    model <- x; tc <- topicCorr(model)
+  } else stop("`x` must be a topicCorr result or a faSTM fit.", call. = FALSE)
+
+  adj <- tc$posadj; diag(adj) <- 0
+  g <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected")
+  K <- ncol(adj)
+  igraph::V(g)$topic <- seq_len(K)
+  if (!is.null(model)) {
+    igraph::V(g)$prevalence <- colMeans(model$theta)
+    igraph::V(g)$label <- apply(label_topics(model, n = nlabel)[["frex"]], 1L,
+                                paste, collapse = ", ")
+  }
+  if (igraph::ecount(g) > 0L) {
+    el <- igraph::as_edgelist(g, names = FALSE)
+    igraph::E(g)$weight <- tc$poscor[el]
+  }
+  g
+}

@@ -176,6 +176,22 @@ test_that("difference plot with a spline term reuses fitted knots (makepredictca
   expect_s3_class(p, "ggplot")
 })
 
+test_that("stm-wishlist: effect_estimates data extractor + topic_corr_graph igraph", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  eff <- estimateEffect(1:6 ~ Party, f$fit, metadata = f$corpus$meta, nsims = 20L, seed = 1L)
+  # #83: get the plot data without plotting
+  ee <- effect_estimates(eff, "Party", method = "pointestimate", topics = c(1L, 2L))
+  expect_true(all(c("topic", "value", "est", "se", "lower", "upper") %in% names(ee)))
+  expect_true(all(ee$lower <= ee$est & ee$est <= ee$upper))
+  # #242: topicCorr as an igraph graph
+  skip_if_not_installed("igraph")
+  g <- topic_corr_graph(f$fit)
+  expect_true(igraph::is_igraph(g))
+  expect_equal(igraph::vcount(g), 6L)
+  expect_true("prevalence" %in% igraph::vertex_attr_names(g))
+})
+
 test_that("stm-wishlist extras: numeric FREX values, effect R^2/F, p.adjust", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(6L)

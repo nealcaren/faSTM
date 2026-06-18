@@ -28,6 +28,8 @@ export(s)
 
 # plotting (ggplot2)
 export(plot_topic_network)
+export(effect_estimates)
+export(topic_corr_graph)
 export(plotModels)
 export(cloud)
 export(plotQuote)
