@@ -1,0 +1,30 @@
+Package: faSTM
+Title: Fast Structural Topic Models (Rust Backend, Drop-in for 'stm')
+Version: 0.0.0.9000
+Authors@R:
+    person("Neal", "Caren", email = "neal.caren@unc.edu", role = c("aut", "cre"))
+Description: A fast, drop-in fitting backend for structural topic models that
+    returns an object compatible with the 'stm' package. faSTM fits the
+    logistic-normal STM (with prevalence and content covariates) via the
+    Rust core from 'topica', then hands the result back as an 'stm'-shaped
+    S3 object so that stm's own labelTopics(), plot(), findThoughts(),
+    sageLabels(), and toLDAvis() work unmodified. It also ships its own
+    estimateEffect() implementing the method-of-composition (honest
+    per-document posterior propagation). Text preparation is delegated to
+    'stm' (textProcessor(), prepDocuments()). An opt-in stochastic
+    variational ("svi") inference path scales fitting to large corpora.
+License: Apache License (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+SystemRequirements: Cargo (Rust's package manager), rustc
+Imports:
+    stm,
+    MASS,
+    stats
+Suggests:
+    testthat (>= 3.0.0)
+Config/rextendr/version: 0.3.1
+Config/testthat/edition: 3
+URL: https://github.com/nealcaren/faSTM
+BugReports: https://github.com/nealcaren/faSTM/issues

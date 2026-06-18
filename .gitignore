@@ -1,0 +1,20 @@
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Rust / cargo build artifacts (compiled at install time)
+src/rust/target/
+src/*.o
+src/*.so
+src/*.dll
+src/rust/.cargo/
+src/Makevars.tmp
+
+# vendored crates (regenerate with cargo vendor for CRAN)
+src/rust/vendor/
+
+# macOS
+.DS_Store
