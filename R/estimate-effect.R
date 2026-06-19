@@ -7,7 +7,9 @@
 #' own rather than inheriting stm's.
 #'
 #' @param formula A formula whose LHS lists topic numbers (e.g. `1:5 ~ treatment`)
-#'   or whose LHS is empty to use all topics; RHS gives the covariates.
+#'   or whose LHS is empty to use all topics; RHS gives the covariates. Random-
+#'   effect terms `(term | group)` are supported (fits `lme4::lmer` per draw and
+#'   pools the fixed effects; variance components are stored).
 #' @param stmobj A faSTM fit (from [stm()]).
 #' @param metadata A data.frame of covariates aligned to the documents.
 #' @param uncertainty `"Global"` (method of composition over posterior draws,
