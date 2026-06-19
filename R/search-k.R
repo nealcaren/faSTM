@@ -23,8 +23,10 @@
 #' @export
 search_k <- function(corpus, K, prevalence = NULL, content = NULL,
                      heldout = TRUE, proportion = 0.5, residuals = FALSE,
-                     cores = 1L, M = 10L, seed = 1L, ...) {
+                     cores = 1L, M = 10L, seed = 1L,
+                     measure = c("mimno", "npmi", "c_v"), ...) {
   stopifnot(inherits(corpus, "faSTM_corpus"))
+  measure <- match.arg(measure)
   K <- as.integer(K)
 
   ho <- if (heldout) make_heldout(corpus, proportion = proportion, seed = seed) else NULL
@@ -41,7 +43,7 @@ search_k <- function(corpus, K, prevalence = NULL, content = NULL,
     data.frame(
       K           = k,
       heldout     = if (heldout) eval_heldout(fit, ho) else NA_real_,
-      semcoh      = mean(semantic_coherence(fit, M = M)),
+      semcoh      = mean(coherence(fit, measure = measure, M = M)),
       exclusivity = if (has_content) NA_real_ else mean(exclusivity(fit, M = M)),
       residual    = if (residuals) check_residuals(fit)$dispersion else NA_real_,
       bound       = tail(fit$convergence$bound, 1L)

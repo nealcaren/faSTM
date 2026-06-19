@@ -17,6 +17,10 @@
 #'   topics (each set's proportions are summed before regressing); named entries
 #'   set the coefficient names. E.g. `combine = list(econ = c(3, 7))`.
 #' @param seed Optional seed for the posterior draws.
+#' @param documents Accepted for stm compatibility (faSTM reads nu from the fit).
+#' @param weights Optional per-document survey/sampling weights (weighted OLS).
+#' @param cluster Optional per-document cluster ids for cluster-robust SEs.
+#' @param ... Unused (stm signature compatibility).
 #' @return An object of class `c("faSTM_effect", "estimateEffect")` with a
 #'   `summary()` method, holding pooled coefficients and standard errors per
 #'   topic.
@@ -24,7 +28,8 @@
 estimateEffect <- function(formula, stmobj, metadata = meta,
                            uncertainty = c("Global", "None", "Local"),
                            nsims = 100L, seed = NULL, meta = NULL,
-                           documents = NULL, combine = NULL, ...) {
+                           documents = NULL, combine = NULL,
+                           weights = NULL, cluster = NULL, ...) {
   stopifnot(inherits(stmobj, "faSTM"))
   if (is.null(metadata)) stop("supply document metadata via `metadata=` (or `meta=`).", call. = FALSE)
   uncertainty <- match.arg(uncertainty)
@@ -41,6 +46,10 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
   mterms <- stats::terms(mf)                      # carries spline knots (predvars)
   xlevels <- stats::.getXlevels(mterms, mf)       # factor levels, for safe prediction
   X <- stats::model.matrix(mterms, mf)
+  ## survey/sampling weights (WLS) and cluster ids (cluster-robust SEs); aligned
+  ## to the model rows that survived model.frame's NA handling.
+  w <- if (is.null(weights)) NULL else as.numeric(weights)[as.integer(rownames(mf))]
+  cl <- if (is.null(cluster)) NULL else cluster[as.integer(rownames(mf))]
 
   if (uncertainty == "None") {
     draws <- list(stmobj$theta)
@@ -49,7 +58,7 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
   }
 
   per_topic <- lapply(topics, function(k) {
-    fits <- lapply(draws, function(th) .ols(X, th[, k]))
+    fits <- lapply(draws, function(th) .ols(X, th[, k], w = w, cluster = cl))
     .rubin_pool(fits)
   })
   names(per_topic) <- paste0("topic", topics)
@@ -62,7 +71,7 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
       names(combine) <- vapply(combine, function(s) paste0("topics", paste(s, collapse = "+")),
                                character(1))
     comb <- lapply(combine, function(set) {
-      fits <- lapply(draws, function(th) .ols(X, rowSums(th[, set, drop = FALSE])))
+      fits <- lapply(draws, function(th) .ols(X, rowSums(th[, set, drop = FALSE]), w = w, cluster = cl))
       .rubin_pool(fits)
     })
     per_topic <- c(per_topic, comb)
@@ -123,17 +132,30 @@ print.summary.faSTM_effect <- function(x, ...) {
 
 ## ---- internals ------------------------------------------------------------
 
-.ols <- function(X, y) {
-  fit <- stats::lm.fit(X, y)
+.ols <- function(X, y, w = NULL, cluster = NULL) {
   n <- nrow(X); p <- ncol(X)
-  rss <- sum(fit$residuals^2)
+  fit <- if (is.null(w)) stats::lm.fit(X, y) else stats::lm.wfit(X, y, w)
+  resid <- fit$residuals
   df <- n - p
-  s2 <- rss / df
-  xtxi <- chol2inv(qr.R(qr(X)))
-  tss <- sum((y - mean(y))^2)                       # regression diagnostics (#255)
+  XtXi <- if (is.null(w)) chol2inv(qr.R(qr(X))) else chol2inv(chol(crossprod(X * sqrt(w))))
+  if (is.null(cluster)) {
+    rss <- if (is.null(w)) sum(resid^2) else sum(w * resid^2)
+    vcov <- (rss / df) * XtXi
+  } else {
+    ## cluster-robust sandwich: bread (X'WX)^-1, meat = sum_g (sum_i w_i X_i e_i)(...)'
+    sc <- X * (if (is.null(w)) resid else w * resid)          # n x p score rows
+    G <- split(seq_len(n), cluster)
+    meat <- Reduce(`+`, lapply(G, function(g) tcrossprod(colSums(sc[g, , drop = FALSE]))))
+    ng <- length(G)
+    adj <- (ng / (ng - 1)) * ((n - 1) / (n - p))              # Stata-style finite-sample correction
+    vcov <- adj * (XtXi %*% meat %*% XtXi)
+  }
+  ybar <- if (is.null(w)) mean(y) else stats::weighted.mean(y, w)
+  tss <- if (is.null(w)) sum((y - ybar)^2) else sum(w * (y - ybar)^2)   # diagnostics (#255)
+  rss <- if (is.null(w)) sum(resid^2) else sum(w * resid^2)
   r2  <- if (tss > 0) 1 - rss / tss else NA_real_
   fst <- if (p > 1L && df > 0L && rss > 0) ((tss - rss) / (p - 1L)) / (rss / df) else NA_real_
-  list(coef = fit$coefficients, vcov = s2 * xtxi, df = df,
+  list(coef = fit$coefficients, vcov = vcov, df = df,
        r.squared = r2, fstatistic = fst, df.num = p - 1L, df.den = df)
 }
 
@@ -162,4 +184,57 @@ print.summary.faSTM_effect <- function(x, ...) {
   if (length(formula) < 3L) return(seq_len(K))   # one-sided -> all topics
   topics <- eval(lhs, envir = list())
   if (is.null(topics) || !is.numeric(topics)) seq_len(K) else as.integer(topics)
+}
+
+#' Average marginal effects from an estimateEffect fit
+#'
+#' The average expected change in a topic's proportion per unit of a covariate
+#' (continuous: average derivative; factor: average level-vs-reference contrast),
+#' averaged over the observed data. Cleaner than reading raw coefficients,
+#' especially with splines/interactions (cf. the `margins` package; stm #271).
+#'
+#' @param object A `faSTM_effect` (from [estimateEffect()]).
+#' @param covariate Covariate name.
+#' @param topics Topics to report (default: all in the fit).
+#' @param h Step for the numeric derivative (continuous covariates); defaults to
+#'   `0.01 * sd`.
+#' @param ci Confidence level.
+#' @return A data.frame: `topic`, `term`, `ame`, `se`, `lower`, `upper`.
+#' @export
+ame <- function(object, covariate, topics = object$topics, h = NULL, ci = 0.95) {
+  stopifnot(inherits(object, "faSTM_effect"))
+  meta <- object$metadata
+  if (!covariate %in% names(meta)) stop("`covariate` not in the effect metadata.", call. = FALSE)
+  design_of <- function(nd) {
+    mf <- stats::model.frame(object$mterms, nd, xlev = object$xlevels, na.action = stats::na.pass)
+    stats::model.matrix(object$mterms, mf, xlev = object$xlevels)
+  }
+  is_factor <- is.factor(meta[[covariate]]) || is.character(meta[[covariate]])
+  if (is_factor) {                                   # average level-vs-reference contrast
+    lv <- levels(as.factor(meta[[covariate]])); ref <- lv[1L]
+    contrasts <- lapply(lv[-1L], function(l) {
+      nd1 <- meta; nd1[[covariate]] <- factor(l,   levels = lv)
+      nd0 <- meta; nd0[[covariate]] <- factor(ref, levels = lv)
+      colMeans(design_of(nd1) - design_of(nd0))
+    })
+    names(contrasts) <- paste0(covariate, lv[-1L])
+  } else {                                           # average numeric derivative
+    hh <- if (is.null(h)) 0.01 * stats::sd(meta[[covariate]]) else h
+    nd1 <- meta; nd1[[covariate]] <- meta[[covariate]] + hh
+    nd0 <- meta; nd0[[covariate]] <- meta[[covariate]] - hh
+    contrasts <- list(colMeans((design_of(nd1) - design_of(nd0)) / (2 * hh)))
+    names(contrasts) <- covariate
+  }
+  z <- stats::qt(1 - (1 - ci) / 2, df = object$coefficients[[1L]]$df)
+  rows <- list()
+  for (k in topics) {
+    co <- object$coefficients[[paste0("topic", k)]]
+    for (nm in names(contrasts)) {
+      cv <- contrasts[[nm]]
+      est <- sum(cv * co$est); se <- sqrt(as.numeric(t(cv) %*% co$vcov %*% cv))
+      rows[[length(rows) + 1L]] <- data.frame(topic = k, term = nm, ame = est, se = se,
+                                              lower = est - z * se, upper = est + z * se)
+    }
+  }
+  out <- do.call(rbind, rows); rownames(out) <- NULL; out
 }

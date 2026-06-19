@@ -79,7 +79,10 @@ inference (`fit_new_documents`); model selection (`search_k`, `select_model`,
 `many_topics`); and a modern **ggplot2** plotting layer (topic summary, covariate
 effects with CIs, search-K diagnostics, topic-correlation network); `toLDAvis`,
 `topicQuality`, and stm-compatible SAGE labels on content models (topica
->= 0.24.1); all `init.type`s including `"LDA"`; `estimateEffect` Global/Local/None;
+>= 0.24.1); all `init.type`s including `"LDA"`; `estimateEffect` Global/Local/None
+with survey `weights`, cluster-robust SEs, `ame()` average marginal effects, and
+`combine`d topics; multiple (crossed) content covariates; `coherence()` with
+Mimno/NPMI/c_v; broom `tidy()`/`glance()`/`augment()` + `predict()`;
 `fitNewDocuments` prior modes + `returnPosterior`. In progress: SVI for covariate models
 (topica#231).
 

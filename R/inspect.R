@@ -323,3 +323,52 @@ print.faSTM_sagelabels <- function(x, ...) {
          "faSTM corpus/dfm (not a bare stm documents list).", call. = FALSE)
   model$dtm
 }
+
+#' Topic coherence (Mimno / NPMI / c_v)
+#'
+#' Coherence scores for each topic's top-`M` words, computed from the fit's
+#' stored document-term matrix. `"mimno"` is the UMass-style score of
+#' [semantic_coherence()]; `"npmi"` averages pairwise normalized PMI; `"c_v"` is
+#' the Roeder et al. (2015) measure (one-set segmentation, NPMI confirmation,
+#' cosine aggregation). NPMI/c_v use *document* co-occurrence as the probability
+#' estimator. Higher is more coherent (npmi/c_v are roughly in [-1, 1]).
+#'
+#' @param model A faSTM fit (carries its DTM).
+#' @param measure `"mimno"`, `"npmi"`, or `"c_v"`.
+#' @param M Top words per topic.
+#' @return A numeric vector, one coherence score per topic.
+#' @export
+coherence <- function(model, measure = c("mimno", "npmi", "c_v"), M = 10L) {
+  measure <- match.arg(measure)
+  if (measure == "mimno") return(semantic_coherence(model, M = M))
+  dtm <- model$dtm
+  if (is.null(dtm)) stop("coherence() needs the fit's stored DTM.", call. = FALSE)
+  pres <- methods::as(dtm > 0, "CsparseMatrix")      # D x V binary presence
+  nD <- nrow(pres)
+  logbeta <- model$beta$logbeta[[1]]; K <- nrow(logbeta); V <- ncol(logbeta)
+  M <- min(M, V)
+  npmi_pair <- function(co, di, a, b) {
+    pij <- co[a, b] / nD
+    if (pij <= 0) return(if (measure == "npmi") -1 else 0)   # never co-occur
+    denom <- -log(pij)
+    if (denom < 1e-12) return(1)                              # pij ~ 1: perfect co-occurrence
+    val <- log(pij / ((di[a] / nD) * (di[b] / nD))) / denom
+    if (!is.finite(val)) 0 else max(-1, min(1, val))
+  }
+  vapply(seq_len(K), function(k) {
+    idx <- order(-logbeta[k, ])[seq_len(M)]
+    co  <- as.matrix(crossprod(pres[, idx, drop = FALSE]))   # M x M co-doc counts
+    di  <- diag(co)
+    if (measure == "npmi") {
+      pr <- utils::combn(M, 2L)
+      mean(vapply(seq_len(ncol(pr)), function(j) npmi_pair(co, di, pr[1, j], pr[2, j]), numeric(1)))
+    } else {                                                  # c_v
+      N <- matrix(0, M, M)
+      for (a in seq_len(M)) for (b in seq_len(M))
+        N[a, b] <- if (a == b) 1 else npmi_pair(co, di, a, b)
+      s <- colSums(N)
+      mean(vapply(seq_len(M), function(i)
+        sum(N[i, ] * s) / (sqrt(sum(N[i, ]^2)) * sqrt(sum(s^2)) + 1e-12), numeric(1)))
+    }
+  }, numeric(1))
+}

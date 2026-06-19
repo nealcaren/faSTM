@@ -176,6 +176,32 @@ test_that("difference plot with a spline term reuses fitted knots (makepredictca
   expect_s3_class(p, "ggplot")
 })
 
+test_that("medium gains: weights + cluster SEs, AME, coherence, broom, predict", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L); m <- f$corpus$meta
+  m$wt <- seq(0.5, 2, length.out = nrow(m)); m$cl <- factor(m$Party)
+  # weights change estimates; cluster changes SEs
+  e0 <- estimateEffect(1:6 ~ Party, f$fit, metadata = m, nsims = 15L, seed = 1L)
+  ew <- estimateEffect(1:6 ~ Party, f$fit, metadata = m, nsims = 15L, seed = 1L, weights = m$wt)
+  ec <- estimateEffect(1:6 ~ Party, f$fit, metadata = m, nsims = 15L, seed = 1L, cluster = m$cl)
+  expect_false(isTRUE(all.equal(e0$coefficients[[1]]$est, ew$coefficients[[1]]$est)))
+  expect_false(isTRUE(all.equal(e0$coefficients[[1]]$se,  ec$coefficients[[1]]$se)))
+  # AME
+  a <- ame(e0, "Party", topics = 1:2)
+  expect_true(all(c("topic", "term", "ame", "se", "lower", "upper") %in% names(a)))
+  # coherence variants finite, one per topic
+  for (mz in c("mimno", "npmi", "c_v")) expect_length(coherence(f$fit, mz), 6L)
+  expect_true(all(is.finite(coherence(f$fit, "npmi"))))
+  # broom tidiers + predict
+  skip_if_not_installed("generics")
+  expect_named(generics::tidy(f$fit), c("topic", "term", "beta"))
+  expect_equal(nrow(generics::tidy(f$fit, matrix = "gamma")), nrow(f$fit$theta) * 6L)
+  expect_equal(generics::glance(f$fit)$k, 6L)
+  expect_named(generics::augment(f$fit), c("document", "term", "count", ".topic"))
+  expect_true("estimate" %in% names(generics::tidy(e0)))
+  expect_equal(dim(predict(f$fit, f$corpus)), dim(f$fit$theta))
+})
+
 test_that("stm-wishlist: topic_proportions (#269) + make_dt meta guard (#247)", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(6L)
