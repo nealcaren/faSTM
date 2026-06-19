@@ -9,7 +9,7 @@ Description: A modern implementation of the Structural Topic Model. faSTM
     corpora. It is
     self-contained: text preparation is read from 'quanteda' or 'tidytext'
     objects, model inspection (labelTopics with FREX/lift/score, findThoughts,
-    semantic coherence, exclusivity, topic correlations) and an honest
+    semantic coherence, exclusivity, topic correlations) and an
     estimateEffect() (method-of-composition posterior propagation) are built in.
     The fitted object is structurally compatible with 'stm' so existing analyses
     migrate with minimal changes.
