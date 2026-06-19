@@ -314,16 +314,44 @@ plot_topic_network <- function(model, cutoff = 0.03, n = 3L, labeltype = "frex")
 plotModels <- function(x, ...) {
   .need_ggplot()
   stopifnot(inherits(x, "faSTM_selectmodel"))
-  df <- data.frame(model = factor(seq_along(x$models)),
-                   semcoh = x$semcoh, exclusivity = x$exclusivity,
-                   frontier = seq_along(x$models) %in% x$frontier)
-  ggplot2::ggplot(df, ggplot2::aes(.data$semcoh, .data$exclusivity)) +
-    ggplot2::geom_point(ggplot2::aes(color = .data$frontier), size = 3) +
-    ggplot2::geom_text(ggplot2::aes(label = .data$model), vjust = -1, size = 3.2) +
-    ggplot2::scale_color_manual(values = c(`TRUE` = "#2c7fb8", `FALSE` = "grey65"),
-                                guide = "none") +
+  means <- data.frame(model = factor(seq_along(x$models)),
+                      semcoh = x$semcoh, exclusivity = x$exclusivity,
+                      frontier = seq_along(x$models) %in% x$frontier)
+  has_excl <- !all(is.na(x$exclusivity))
+
+  p <- ggplot2::ggplot(mapping = ggplot2::aes(.data$semcoh, .data$exclusivity))
+
+  ## faint per-topic cloud (one point per topic per model), colored by model —
+  ## the spread stm's plotModels shows. Recomputed with the run's M / frexw.
+  if (has_excl) {
+    M <- if (is.null(x$M)) 10L else x$M
+    frexw <- if (is.null(x$frexw)) 0.7 else x$frexw
+    cloud <- do.call(rbind, lapply(seq_along(x$models), function(i) {
+      m <- x$models[[i]]
+      data.frame(model = factor(i),
+                 semcoh = semantic_coherence(m, M = M),
+                 exclusivity = exclusivity(m, M = M, frexw = frexw))
+    }))
+    p <- p +
+      ggplot2::geom_point(data = cloud, ggplot2::aes(color = .data$model),
+                          alpha = 0.30, size = 1.6) +
+      ggplot2::scale_color_discrete(name = "model (topics)")
+  }
+
+  ## bold model-mean points on top: shape 21 so `fill` (frontier) is a separate
+  ## scale from the cloud's color; labelled with the model number.
+  p +
+    ggplot2::geom_point(data = means, ggplot2::aes(fill = .data$frontier),
+                        shape = 21, size = 4.5, stroke = 0.9, color = "black") +
+    ggplot2::geom_text(data = means, ggplot2::aes(label = .data$model),
+                       vjust = -1.1, size = 3.4, fontface = "bold") +
+    ggplot2::scale_fill_manual(values = c(`TRUE` = "#2c7fb8", `FALSE` = "grey80"),
+                               guide = "none") +
     ggplot2::labs(x = "semantic coherence", y = "exclusivity",
-                  title = "Candidate models", subtitle = "blue = quality frontier") +
+                  title = "Candidate models",
+                  subtitle = if (has_excl)
+                    "faint = per-topic · bold = model mean (blue = quality frontier)"
+                  else "bold = model mean (blue = quality frontier)") +
     ggplot2::theme_minimal(base_size = 12)
 }
 

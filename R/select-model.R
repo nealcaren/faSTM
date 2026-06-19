@@ -46,7 +46,7 @@ select_model <- function(corpus, K, N = 10L, prevalence = NULL, content = NULL,
 
   structure(list(models = lapply(runs, `[[`, "fit"),
                  semcoh = semcoh, exclusivity = excl,
-                 frontier = frontier, seeds = seeds),
+                 frontier = frontier, seeds = seeds, M = M, frexw = frexw),
             class = "faSTM_selectmodel")
 }
 

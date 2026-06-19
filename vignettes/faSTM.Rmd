@@ -21,6 +21,15 @@ faSTM does not need to.) The code mirrors the `stm` vignette's calls. Because
 each fit is fresh, the *topic numbers* differ from the original — the workflow,
 not the specific topics, is what carries over.
 
+> **A note on the plots.** faSTM's `plot()` methods are restyled (ggplot),
+> *re-defaulted* versions of stm's, not pixel-for-pixel copies. Two differences
+> worth knowing: `plot(type = "summary")` ranks words by **FREX** (stm defaults to
+> highest-probability — pass `labeltype = "prob"` for stm-style labels); and
+> `plotModels()` draws stm's full **per-topic cloud** (faint, one point per topic
+> coloured by model) *and* overlays **bold model-mean points** with the
+> non-dominated models highlighted on a "quality frontier" — so you see both the
+> spread and the summary at once.
+
 ```{r}
 library(faSTM)
 ```
@@ -93,9 +102,10 @@ labelTopics(poliblogPrevFit, c(3, 7, 20))
 
 Representative documents per topic, displayed as wrapped quotes:
 
-```{r thoughts, fig.height=3.2}
-thoughts3 <- findThoughts(poliblogPrevFit, texts = out$meta$text, n = 2, topics = 3)$docs[[1]]
-plotQuote(substr(thoughts3, 1, 200), width = 50, main = "Topic 3")
+```{r thoughts, fig.height=3.4}
+# bundled poliblog text is short (~50-char) snippets, so a few fill the panel
+thoughts3 <- findThoughts(poliblogPrevFit, texts = out$meta$text, n = 4, topics = 3)$docs[[1]]
+plotQuote(substr(thoughts3, 1, 200), width = 60, main = "Topic 3")
 ```
 
 Topics ranked by their expected prevalence in the corpus:
@@ -187,6 +197,6 @@ dim(theta_new)
 ---
 
 Everything above is the `stm` vignette's workflow, run on faSTM: the same
-function names and arguments, the same corpus, the same kinds of plots — fit in
-seconds and with an honest `estimateEffect`. Existing `stm` scripts port with
-little more than the changes shown here.
+function names and arguments, the same corpus, and faSTM's restyled, re-defaulted
+plots (see the note up top) — fit in seconds and with an honest `estimateEffect`.
+Existing `stm` scripts port with little more than the changes shown here.
