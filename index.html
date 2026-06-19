@@ -129,11 +129,22 @@
 <div class="section level2">
 <h2 id="install-beta">Install (beta)<a class="anchor" aria-label="anchor" href="#install-beta"></a>
 </h2>
-<p>faSTM has a Rust core, so installing from source needs a <strong>Rust toolchain</strong> (<code>cargo</code> + <code>rustc</code>). This is a one-time setup:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># macOS / Linux: install Rust if you don't have it</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="ex">curl</span> <span class="at">--proto</span> <span class="st">'=https'</span> <span class="at">--tlsv1.2</span> <span class="at">-sSf</span> https://sh.rustup.rs <span class="kw">|</span> <span class="fu">sh</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="from-r-universe-recommended-pre-built-no-rust-toolchain">From R-universe (recommended: pre-built, no Rust toolchain)<a class="anchor" aria-label="anchor" href="#from-r-universe-recommended-pre-built-no-rust-toolchain"></a>
+</h3>
+<p>R-universe ships compiled binaries, so this is the easiest path: a normal <code><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages()</a></code> with nothing to compile.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"faSTM"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://nealcaren.r-universe.dev"</span>,</span>
+<span>                                     <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="from-source-on-github-needs-a-rust-toolchain">From source on GitHub (needs a Rust toolchain)<a class="anchor" aria-label="anchor" href="#from-source-on-github-needs-a-rust-toolchain"></a>
+</h3>
+<p>Building from source compiles the Rust core, so it needs a <strong>Rust toolchain</strong> (<code>cargo</code> + <code>rustc</code>). This is a one-time setup:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># macOS / Linux: install Rust if you don't have it</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="ex">curl</span> <span class="at">--proto</span> <span class="st">'=https'</span> <span class="at">--tlsv1.2</span> <span class="at">-sSf</span> https://sh.rustup.rs <span class="kw">|</span> <span class="fu">sh</span></span></code></pre></div>
 <p>Then install in R with whichever tool you already have (they’re equivalent; <code>devtools::install_github</code> just calls <code>remotes</code>):</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># the familiar way</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"nealcaren/faSTM"</span><span class="op">)</span></span>
 <span></span>
@@ -149,6 +160,7 @@
 <blockquote>
 <p><strong>Beta status.</strong> The API is stabilizing toward a CRAN release. Please file issues at <a href="https://github.com/nealcaren/faSTM/issues" class="external-link uri">https://github.com/nealcaren/faSTM/issues</a>. Bug reports, rough edges, and feature requests are all welcome.</p>
 </blockquote>
+</div>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
@@ -192,6 +204,7 @@
 <ul class="list-unstyled">
 <li><a href="https://github.com/nealcaren/faSTM/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/nealcaren/faSTM/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://github.com/nealcaren/faSTM/actions/workflows/pkgdown.yaml" class="external-link"><img src="https://github.com/nealcaren/faSTM/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a></li>
+<li><a href="https://nealcaren.r-universe.dev/faSTM" class="external-link"><img src="https://nealcaren.r-universe.dev/badges/faSTM" alt="R-universe"></a></li>
 </ul>
 </div>
 
