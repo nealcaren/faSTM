@@ -1,31 +1,28 @@
 # faSTM
 
-A fast, modern **Structural Topic Model** for R. faSTM covers the core `stm`
-workflow — prevalence and content covariates, FREX/lift/score labels, semantic
-coherence, representative documents, covariate-effect estimation, model
-selection, out-of-sample inference — but fits in **seconds instead of minutes**
-via a Rust core, scales to large corpora, and is self-contained (no dependency
-on [`stm`](https://github.com/bstewart/stm)).
+A fast, modern **Structural Topic Model** for R. faSTM is a modern successor to
+[`stm`](https://github.com/bstewart/stm): it implements the full STM framework —
+prevalence and content covariates, FREX/lift/score labels, semantic coherence,
+representative documents, covariate-effect estimation, model selection, and
+out-of-sample inference — on a Rust core that fits in **seconds instead of
+minutes**, scales to large corpora, and is self-contained.
 
-`stm` is no longer actively developed (last feature release 2023; 100+ open
-issues). faSTM is a clean-room successor with a faster engine, an honest
-`estimateEffect`, and a familiar API. Most `stm` analysis code runs with minimal
-edits — the fitted object is structurally compatible.
+faSTM keeps a familiar, `stm`-compatible API, so most `stm` analysis code runs
+with minimal edits and the fitted object is structurally compatible. It builds on
+`stm`'s framework and adds modern conveniences on top: an honest `estimateEffect`
+with survey weights, cluster-robust SEs, and random effects; multiple content
+covariates; broom tidiers; and NPMI/c_v coherence.
 
-**What faSTM is *not*:** it does not reproduce a *specific* `stm` fit's topics.
-STM's objective is non-convex and faSTM uses a different optimizer, so an
-independent fit lands in its own (valid, deterministic) optimum — different
-topics and numbering, not a relabeling of `stm`'s. For a guaranteed
-"replicate the original" run, pass `stm`'s own spectral β via
-`stm(..., init.beta = )`. All four `init.type`s are supported — `"Spectral"`,
-`"Random"`, `"LDA"` (seeded from a CVB0 LDA), and `"Custom"`. Content (SAGE)
-models are fully stm-shaped — `stm::sageLabels()`/`labelTopics()` work on them —
-which requires `topica >= 0.24.1`. Unlike stm, `content = ~ g + h` is allowed:
-faSTM fits the fully crossed (saturated) content model, and `content_topics()`
-recovers the per-covariate marginal vocabulary.
+**Replicating a specific fit.** STM's objective is non-convex and faSTM uses its
+own optimizer, so an independent fit settles into its own valid, deterministic
+optimum — different topic numbering, not a relabeling of a given `stm` run.
+faSTM's spectral initialization reproduces `stm`'s Arora anchor-recovery step
+exactly, so when you want a guaranteed match you can seed from `stm`'s own
+spectral β via `stm(..., init.beta = )`. All four `init.type`s are supported:
+`"Spectral"`, `"Random"`, `"LDA"` (seeded from a CVB0 LDA), and `"Custom"`.
 
 ```r
-library(quanteda)   # tokenization (faSTM reads quanteda/tidytext, doesn't reinvent it)
+library(quanteda)   # tokenization (faSTM reads quanteda/tidytext objects directly)
 library(faSTM)
 
 dfmat <- data_corpus_inaugural |>
@@ -39,52 +36,66 @@ corpus <- as_corpus(dfmat)                     # docvars become metadata
 fit    <- stm(corpus, K = 10, prevalence = ~ Party)
 
 label_topics(fit)                              # prob / FREX / lift / score
-semantic_coherence(fit); exclusivity(fit)      # bit-identical to stm
+semantic_coherence(fit); exclusivity(fit)
 eff <- estimateEffect(1:10 ~ Party, fit, metadata = corpus$meta)
 summary(eff)
 ```
 
-## What's different from stm
+## Highlights
 
-- **Speed.** Rust variational EM, multithreaded E-step. ~35× faster than `stm`
-  across corpus sizes (10k docs: ~1s vs ~40s), with a `num_threads` knob.
-- **Scale.** Opt-in `inference = "svi"` (stochastic variational) for corpora that
-  don't fit batch EM — something `stm` cannot do. *(prevalence/content SVI lands
-  with topica [#231](https://github.com/nealcaren/topica/issues/231).)*
-- **Honest effects.** `estimateEffect()` uses the method of composition,
-  propagating per-document posterior uncertainty.
-- **Fixes open stm requests.** `frex_scores()` returns the numeric FREX matrix,
-  not just words (stm#265); inspection carries the corpus so nothing needs
-  re-supplying; deterministic spectral init whose Arora recovery reproduces
-  `stm`'s `recoverL2()` step exactly (topica#234, fixed in topica v0.24.0).
-- **Self-contained.** Tokenize with `quanteda`/`tidytext` (which the field
-  already uses); faSTM reads their objects. No `textProcessor` to inherit bugs
-  from.
+- **Speed.** Rust variational EM with a multithreaded E-step — roughly **35×
+  faster** than `stm` across corpus sizes (≈1s vs ≈40s on 10k docs), with a
+  `num_threads` knob.
+- **Scale.** An opt-in `inference = "svi"` (stochastic variational) path for
+  corpora too large for batch EM. *(Covariate-model SVI lands with topica
+  [#231](https://github.com/nealcaren/topica/issues/231).)*
+- **Honest, flexible effects.** `estimateEffect()` uses the method of
+  composition, propagating per-document posterior uncertainty, and supports
+  survey `weights`, cluster-robust SEs, random effects (`(1 | group)` via
+  `lme4`), average marginal effects (`ame()`), and `combine`d topics.
+- **Rich inspection.** `label_topics()` (prob/FREX/lift/score), `topic_terms()`
+  with numeric scores, `coherence()` (Mimno / NPMI / c_v), `exclusivity()`,
+  `topic_proportions()`, topic correlations and SAGE content labels.
+- **Multiple content covariates.** `content = ~ g + h` fits the fully crossed
+  content model, and `content_topics()` recovers each covariate's marginal
+  vocabulary.
+- **Tidyverse-friendly.** `tidy()` / `glance()` / `augment()` (broom) and a
+  `predict()` method, alongside a modern **ggplot2** plotting layer.
+- **Self-contained.** Tokenize with `quanteda` / `tidytext` (which the field
+  already uses) and faSTM reads their objects directly; no runtime dependency on
+  Rust, `topica`, or Python once installed.
 
 ## Faithful where it counts
 
 On a **shared fit** (same β/θ), faSTM's inspection numbers match `stm`'s:
-FREX/prob/score labels are **identical** to `stm::labelTopics`, and
+FREX/prob/lift/score labels are **identical** to `stm::labelTopics`, and
 `exclusivity()` / `semantic_coherence()` match to floating point. The fitted
-object is `stm`-shaped, so `stm::labelTopics()` and `stm::plot.STM()` run on a
-faSTM (non-content) fit during migration. This is parity *given the same fit*,
-not a claim that faSTM and `stm` produce the same fit (see above).
+object is `stm`-shaped, so `stm`'s own readers — `labelTopics()`, `plot.STM()`,
+`sageLabels()`, `findThoughts()`, `estimateEffect()` — run on a faSTM fit, which
+makes migrating existing analyses straightforward. This is parity *given the same
+fit*, not a claim that the two produce the same fit (see above).
 
 ## Status
 
-Working: corpus ingestion (quanteda/tidytext/matrix); fast fit (prevalence +
-content, threads); the full inspection layer (labels/FREX/coherence/exclusivity/
-topic correlations, SAGE labels); honest `estimateEffect`; out-of-sample
-inference (`fit_new_documents`); model selection (`search_k`, `select_model`,
-`many_topics`); and a modern **ggplot2** plotting layer (topic summary, covariate
-effects with CIs, search-K diagnostics, topic-correlation network); `toLDAvis`,
-`topicQuality`, and stm-compatible SAGE labels on content models (topica
->= 0.24.1); all `init.type`s including `"LDA"`; `estimateEffect` Global/Local/None
-with survey `weights`, cluster-robust SEs, `ame()` average marginal effects, and
-`combine`d topics; multiple (crossed) content covariates; `coherence()` with
-Mimno/NPMI/c_v; broom `tidy()`/`glance()`/`augment()` + `predict()`;
-`fitNewDocuments` prior modes + `returnPosterior`. In progress: SVI for covariate models
-(topica#231).
+Feature-complete and stabilizing toward a CRAN release. Working today:
+
+- Corpus ingestion from quanteda / tidytext / document-term matrices.
+- Fast fit with prevalence and (one or several, crossed) content covariates,
+  threaded; all four `init.type`s including a real `"LDA"` initializer.
+- Full inspection: labels, FREX/lift/score, coherence (Mimno/NPMI/c_v),
+  exclusivity, topic correlations, SAGE content labels and marginals.
+- `estimateEffect` with Global/Local/None uncertainty, survey weights,
+  cluster-robust SEs, random effects, average marginal effects, combined topics,
+  multiple-testing correction, and R²/F diagnostics.
+- Out-of-sample inference (`fit_new_documents` / `predict` / `fitNewDocuments`
+  with prior modes and posterior return).
+- Model selection (`search_k`, `select_model`, `many_topics`) and a ggplot2
+  plotting layer (topic summary, covariate effects with CIs, search-K
+  diagnostics, topic-correlation network + igraph export).
+- broom tidiers, `toLDAvis`, `topicQuality`, and stm-compatible exports.
+
+On the roadmap: stochastic variational inference for covariate models
+(topica [#231](https://github.com/nealcaren/topica/issues/231)).
 
 ## Install (beta)
 
@@ -117,13 +128,13 @@ The first install compiles the Rust core (it fetches and builds the pinned
 minutes). After that, the package is **fully self-contained**: it has no runtime
 dependency on Rust, `topica`, or Python.
 
-Optional features pull in extra R packages only when used:
-`ggplot2`/`ggrepel` (plots), `quanteda`/`tidytext` (text prep), `glmnet`
-(`topic_lasso`), `clue` (faster topic alignment).
+Optional features pull in extra R packages only when used: `ggplot2` / `ggrepel`
+(plots), `quanteda` / `tidytext` (text prep), `lme4` (random effects), `glmnet`
+(`topic_lasso`), `igraph` (`topic_corr_graph`), `LDAvis` (`toLDAvis`).
 
 > **Beta status.** The API is stabilizing toward a CRAN release. Please file
 > issues at <https://github.com/nealcaren/faSTM/issues> — bug reports, rough
-> edges, and missing `stm` features all welcome.
+> edges, and feature requests all welcome.
 
 ## License
 
