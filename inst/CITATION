@@ -1,0 +1,29 @@
+citHeader(
+  "faSTM implements the Structural Topic Model of Roberts, Stewart, and Tingley. ",
+  "If you use it, please cite the original STM method/software as well as faSTM:"
+)
+
+bibentry(
+  bibtype = "Manual",
+  header  = "To cite the faSTM package:",
+  title   = "{faSTM}: Fast Structural Topic Models",
+  author  = person("Neal", "Caren"),
+  year    = "2026",
+  note    = sprintf("R package version %s", meta$Version),
+  url     = "https://github.com/nealcaren/faSTM"
+)
+
+bibentry(
+  bibtype = "Article",
+  header  = "To cite the Structural Topic Model and the stm package it reimplements:",
+  title   = "{stm}: An {R} Package for Structural Topic Models",
+  author  = c(person(c("Margaret", "E."), "Roberts"),
+              person(c("Brandon", "M."), "Stewart"),
+              person("Dustin", "Tingley")),
+  journal = "Journal of Statistical Software",
+  year    = "2019",
+  volume  = "91",
+  number  = "2",
+  pages   = "1--40",
+  doi     = "10.18637/jss.v091.i02"
+)

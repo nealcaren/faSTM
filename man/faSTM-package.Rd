@@ -32,5 +32,12 @@ Authors:
   \item Neal Caren \email{neal.caren@unc.edu}
 }
 
+Other contributors:
+\itemize{
+  \item Margaret Roberts (author of stm; inspection formulas in inspect.R adapted from stm (MIT)) [copyright holder]
+  \item Brandon Stewart (author of stm (MIT)) [copyright holder]
+  \item Dustin Tingley (author of stm (MIT)) [copyright holder]
+}
+
 }
 \keyword{internal}

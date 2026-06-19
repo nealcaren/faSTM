@@ -1,7 +1,8 @@
 # Model inspection: top words, FREX/lift/score, representative docs, coherence,
 # exclusivity, topic correlations. Pure R over the fitted object. Formulas are
-# faithful ports of stm's calcfrex / calclift / calcscore / exclusivity /
-# semCoh1beta so the numbers match what reviewers expect.
+# adapted from stm's calcfrex / calclift / calcscore / exclusivity / semCoh1beta
+# so the numbers match what reviewers expect. stm is MIT-licensed (c) Roberts,
+# Stewart, Tingley; see inst/LICENSE.note for the notice this adaptation carries.
 
 .lse_cols <- function(logbeta) {           # column log-sum-exp (over topics)
   apply(logbeta, 2L, function(c) { m <- max(c); m + log(sum(exp(c - m))) })
