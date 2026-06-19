@@ -15,24 +15,29 @@ set.seed(2138)
 
 The [companion vignette](faSTM.html) shows that faSTM runs the *same* analysis as
 the `stm` package. This one covers what faSTM adds **on top of** that framework:
-a richer, more honest `estimateEffect()`, multiple content covariates, alternative
-coherence metrics, and a tidyverse-friendly surface. None of these require
-leaving the `stm`-compatible object — they are extra tools, not a different model.
+multiple content covariates, a richer and more honest `estimateEffect()`,
+alternative coherence metrics, and a tidyverse-friendly surface. None of these
+require leaving the `stm`-compatible object — they are extra tools, not a
+different model.
 
-The slower fits below are shown with `eval = FALSE` (the code is exactly what you
-would run); the lightweight illustrations run live on one base model.
+We use a second bundled corpus, `congress`: a balanced sample of **1,679 U.S.
+House and Senate floor speeches**, Congresses 100–111 (1987–2011), with metadata
+`party` (Democrat/Republican), `chamber` (House/Senate), and `congress` (the time
+index). It is built for exactly this vignette — two categorical covariates that
+cross, plus a time axis.
 
-```{r}
+```{r load}
 library(faSTM)
-data(poliblog)
-out <- list(documents = poliblog$documents, vocab = poliblog$vocab, meta = poliblog$meta)
+data(congress)
+congress
+table(congress$meta$party, congress$meta$chamber)
 ```
 
-We fit one prevalence model and reuse it throughout.
+We fit one prevalence model — topic prevalence as a function of **party** and a
+smooth of **time** — and reuse it throughout.
 
 ```{r basefit}
-fit <- stm(out$documents, out$vocab, K = 20,
-           prevalence = ~ rating + s(day), data = out$meta,
+fit <- stm(congress, K = 12, prevalence = ~ party + s(congress),
            verbose = FALSE)
 ```
 
@@ -40,76 +45,79 @@ fit <- stm(out$documents, out$vocab, K = 20,
 
 `stm` allows a single content (SAGE) covariate. faSTM accepts several and crosses
 them into a **saturated** content model — one topic-word distribution per
-combination of levels. The bundled poliblog has two categorical fields, `rating`
-(2 levels) and `blog` (6 levels), so `~ rating + blog` yields a 2 × 6 = 12-group
-content model:
+combination of levels. Here `party` (2) × `chamber` (2) gives a 4-group content
+model, so we can read how *Democrats vs Republicans* and *House vs Senate* word
+each topic differently:
 
-```{r content, eval=FALSE}
-fitC <- stm(out$documents, out$vocab, K = 20,
-            prevalence = ~ rating + s(day),
-            content    = ~ rating + blog,     # crossed -> 12 SAGE groups
-            data = out$meta)
-#> faSTM: crossing 2 content covariates (rating, blog) into a saturated
-#>        content model with 12 groups.
+```{r content}
+fitC <- stm(congress, K = 12,
+            prevalence = ~ party + s(congress),
+            content    = ~ party + chamber,    # crossed -> 4 SAGE groups
+            verbose = FALSE)
+fitC$settings$dim$A                            # number of content groups
+```
 
-# stm's SAGE machinery works unchanged on the crossed model:
-sageLabels(fitC, n = 5)
+The fit reports the crossing as it runs, and `stm`'s SAGE tooling works
+unchanged on the result:
+
+```{r sage, eval=FALSE}
+sageLabels(fitC, n = 5)          # top words per topic, per party×chamber group
 labelTopics(fitC, topics = 3)
 ```
 
-The crossed levels are recorded on the fit (`settings$covariates$contentvars`,
+The crossed levels are stored on the fit (`settings$covariates$contentvars`,
 `contenttable`) so per-covariate marginals can be recovered later.
 
-## Honest `estimateEffect()`: weights and cluster-robust SEs
+## Honest `estimateEffect()`: cluster-robust SEs and weights
 
-faSTM's `estimateEffect()` keeps `stm`'s method-of-composition uncertainty
-(re-drawing topic proportions per simulation) and adds two design features that
-real survey/grouped data usually need.
+faSTM keeps `stm`'s method-of-composition uncertainty (re-drawing topic
+proportions per simulation) and adds design features grouped data usually needs.
 
-**Survey weights** enter the per-draw regression as weighted least squares.
-(poliblog has no design weights; we use an illustrative vector.)
-
-```{r weights}
-w <- with(out$meta, ifelse(rating == "Liberal", 1.3, 0.8))   # illustrative
-eff_w <- estimateEffect(1:20 ~ rating + s(day), fit,
-                        metadata = out$meta, weights = w, nsims = 25)
-```
-
-**Cluster-robust standard errors** (here clustering by `blog`) replace the
-classical vcov with a sandwich estimator carrying `stm`'s finite-sample
-correction:
+**Cluster-robust standard errors** — speeches within a Congress are not
+independent, so we cluster by `congress`. faSTM swaps the classical vcov for a
+sandwich estimator with `stm`'s finite-sample correction:
 
 ```{r cluster}
-eff_cl <- estimateEffect(1:20 ~ rating + s(day), fit,
-                         metadata = out$meta, cluster = out$meta$blog, nsims = 25)
-summary(eff_cl, topics = 3)
+eff <- estimateEffect(1:12 ~ party + s(congress), fit,
+                      metadata = congress$meta,
+                      cluster = congress$meta$congress, nsims = 25)
+summary(eff, topics = 3)
 ```
 
-`summary()` also takes a `p.adjust.method` (e.g. `"BH"`) to correct across topics,
-and reports per-equation R² and F diagnostics.
+`summary()` also takes `p.adjust.method` (e.g. `"BH"`) to correct across topics,
+and reports per-equation R² and F diagnostics. **Survey weights** enter the same
+way via `weights =` (weighted least squares per draw).
 
 ## Random effects in prevalence
 
 Prevalence formulas may include `lme4`-style random-effect terms; faSTM fits a
-mixed model per posterior draw and pools with Rubin's rules. Useful when
-documents nest in groups (authors, outlets, years):
+mixed model per posterior draw and pools with Rubin's rules. Natural here if you
+treat Congresses as exchangeable groups:
 
 ```{r ranef, eval=FALSE}
-eff_re <- estimateEffect(1:20 ~ rating + (1 | blog), fit,
-                         metadata = out$meta, nsims = 25)
+eff_re <- estimateEffect(1:12 ~ party + (1 | congress), fit,
+                         metadata = congress$meta, nsims = 25)
 summary(eff_re, topics = 3)   # fixed effects + pooled variance components
 ```
 
 ## Average marginal effects
 
-Coefficients on splines or interactions are hard to read. `ame()` turns an
-estimated effect into an interpretable average marginal effect — the mean change
-in topic proportion for a one-unit (or factor-level) change in a covariate,
-averaged over the sample:
+Coefficients on splines and factors are hard to read. `ame()` reports the
+**average marginal effect** — the mean change in topic proportion for a
+Republican-vs-Democrat shift, averaged over the sample:
 
 ```{r ame}
-eff <- estimateEffect(1:20 ~ rating + s(day), fit, metadata = out$meta, nsims = 25)
-ame(eff, covariate = "rating", topics = c(3, 7, 20))
+ame(eff, covariate = "party", topics = c(1, 3, 7))
+```
+
+## Topic prevalence over time
+
+Because prevalence includes `s(congress)`, we can trace a topic's share across
+the 1987–2011 window:
+
+```{r overtime, fig.height=3.6}
+plot(eff, "congress", method = "continuous", topics = 3,
+     model = fit, xlab = "Congress (100 = 1987 ... 111 = 2009)")
 ```
 
 ## Coherence: NPMI and C_V
@@ -126,11 +134,10 @@ data.frame(
 )
 ```
 
-`search_k()` can select K by any of these (and parallelizes across K):
+`search_k()` can select K by any of these, and parallelizes across K:
 
 ```{r searchk, eval=FALSE}
-co <- as_corpus(poliblog)
-search_k(co, K = c(10, 20, 30), prevalence = ~ rating + s(day),
+search_k(congress, K = c(8, 12, 16), prevalence = ~ party + s(congress),
          measure = "npmi", cores = 3)
 ```
 
