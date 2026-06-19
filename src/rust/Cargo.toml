@@ -17,16 +17,13 @@ path = "document.rs"
 [dependencies]
 extendr-api = "0.7"
 
-# The fitting core. STM = CTM + prevalence + content lives in topica::ctm::fit_ctm.
-# Pinned to a published tag so installs are reproducible and self-contained:
-# v0.24.0 has the faithful spectral recover() + `init_beta` warm-start (#234/#235)
-# that faSTM's binding requires. default-features = false keeps the NumPy-free,
-# no-JVM, no-pyo3 core only.
-# v0.24.1 adds ContentKappa (SAGE m/topic/cov/interaction) on CtmModel (#237),
-# which faSTM's binding consumes for stm-shaped sageLabels on content models.
-topica = { git = "https://github.com/nealcaren/topica", tag = "v0.24.1", default-features = false }
-# Local dev override (uncomment to build against a working tree):
-# topica = { path = "../../../topica", default-features = false }
+# The fitting core: the thin, dependency-light `topica-core` workspace member
+# (CTM/STM/SAGE + CVB0; deps = rand/rand_chacha/rayon/regex only). This is what
+# makes faSTM CRAN-vendorable — no pyo3/numpy/JVM, no full topica (topica#242).
+# Pinned to the topica-core workspace member (topica#242 refactor). rev for now;
+# flip to a topica release tag once refactor/topica-core merges + is tagged.
+topica-core = { git = "https://github.com/nealcaren/topica", rev = "da351690ae1694cb96aaaf738c9ecdabfc271003", default-features = false }
+# DEV: topica-core = { path = "../../../topica/topica-core", default-features = false }
 
 # Must match topica's lockfile so the `Rng` trait bound and the seed stream are
 # byte-identical to topica's own STM fits (parity).
@@ -35,11 +32,6 @@ rand_chacha = "0.3"
 
 # Scoped thread pool for the parallel variational E-step (num_threads control).
 rayon = "1"
-
-# ---- Local development override -------------------------------------------
-# Uncomment to build against a working tree instead of the pinned git rev:
-# [patch."https://github.com/nealcaren/topica"]
-# topica = { path = "../../../topica" }
 
 [profile.release]
 lto = true

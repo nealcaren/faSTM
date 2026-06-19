@@ -1,7 +1,7 @@
 //! faSTM — extendr binding to topica's structural topic model fitter.
 //!
 //! The entire binding surface is ONE function: `fit_stm`. It wraps
-//! `topica::ctm::fit_ctm` (STM = CTM + prevalence + content) and returns the
+//! `topica_core::ctm::fit_ctm` (STM = CTM + prevalence + content) and returns the
 //! fitted `CtmModel` arrays as a flat R list. All stm-object assembly, the
 //! per-document posterior draws, and `estimateEffect` are pure R (see `R/`).
 //!
@@ -13,7 +13,7 @@
 use extendr_api::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-use topica::ctm::{fit_ctm, infer_theta, GammaPrior};
+use topica_core::ctm::{fit_ctm, infer_theta, GammaPrior};
 
 /// Run `f` on a scoped rayon pool of `n` workers (mirrors topica's
 /// `run_with_threads`). `n < 1` uses the global pool (all cores). The parallel
@@ -254,7 +254,7 @@ fn lda_init_beta(
     }
     let v = num_types as usize;
     let k = num_topics as usize;
-    let corpus = topica::corpus::Corpus {
+    let corpus = topica_core::corpus::Corpus {
         id_to_word: (0..v).map(|i| i.to_string()).collect(),
         doc_names: vec![String::new(); docs.len()],
         doc_labels: Vec::new(),
@@ -264,7 +264,7 @@ fn lda_init_beta(
     };
     let mut rng = ChaCha8Rng::seed_from_u64(seed as u64);
     let alpha_vec = vec![alpha; k];
-    let mut lda = topica::cvb0::Cvb0::new(&corpus, k, &alpha_vec, beta, &mut rng);
+    let mut lda = topica_core::cvb0::Cvb0::new(&corpus, k, &alpha_vec, beta, &mut rng);
     for _ in 0..(iters as usize) {
         lda.sweep();
     }
