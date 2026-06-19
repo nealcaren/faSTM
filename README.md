@@ -3,6 +3,7 @@
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/nealcaren/faSTM/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/nealcaren/faSTM/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/nealcaren/faSTM/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/nealcaren/faSTM/actions/workflows/pkgdown.yaml)
+[![R-universe](https://nealcaren.r-universe.dev/badges/faSTM)](https://nealcaren.r-universe.dev/faSTM)
 <!-- badges: end -->
 
 📖 **Documentation:** <https://nealcaren.github.io/faSTM/>
@@ -114,7 +115,19 @@ On the roadmap: stochastic variational inference for covariate models
 
 ## Install (beta)
 
-faSTM has a Rust core, so installing from source needs a **Rust toolchain**
+### From R-universe (recommended: pre-built, no Rust toolchain)
+
+R-universe ships compiled binaries, so this is the easiest path: a normal
+`install.packages()` with nothing to compile.
+
+```r
+install.packages("faSTM", repos = c("https://nealcaren.r-universe.dev",
+                                     "https://cloud.r-project.org"))
+```
+
+### From source on GitHub (needs a Rust toolchain)
+
+Building from source compiles the Rust core, so it needs a **Rust toolchain**
 (`cargo` + `rustc`). This is a one-time setup:
 
 ```sh
