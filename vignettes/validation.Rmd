@@ -37,8 +37,8 @@ out <- list(documents = poliblog$documents, vocab = poliblog$vocab, meta = polib
 ## Same model, same numbers
 
 The fitted object is `stm`-shaped, so `stm`'s own readers run on a faSTM fit. We
-fit once with faSTM, then compute every inspection metric **both ways** — with
-faSTM's functions and with `stm`'s — on that single shared model. Identical
+fit once with faSTM, then compute every inspection metric **both ways** (with
+faSTM's functions and with `stm`'s) on that single shared model. Identical
 inputs should give identical outputs.
 
 ```{r fit}
