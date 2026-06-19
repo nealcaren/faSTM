@@ -33,3 +33,12 @@ Useful links:
 Authors:
 
 - Neal Caren <neal.caren@unc.edu>
+
+Other contributors:
+
+- Margaret Roberts (author of stm; inspection formulas in inspect.R
+  adapted from stm (MIT)) \[copyright holder\]
+
+- Brandon Stewart (author of stm (MIT)) \[copyright holder\]
+
+- Dustin Tingley (author of stm (MIT)) \[copyright holder\]
