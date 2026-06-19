@@ -80,6 +80,7 @@ congresses 100-111. The underlying floor speeches are U.S. government works
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="stm.html">stm</a></span><span class="op">(</span><span class="va">congress</span>, K <span class="op">=</span> <span class="fl">12</span>, prevalence <span class="op">=</span> <span class="op">~</span> <span class="va">party</span> <span class="op">+</span> <span class="fu"><a href="s.html">s</a></span><span class="op">(</span><span class="va">congress</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           content <span class="op">=</span> <span class="op">~</span> <span class="va">party</span> <span class="op">+</span> <span class="va">chamber</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> faSTM: crossing 2 content covariates (party, chamber) into a saturated content model with 4 groups.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> faSTM fits with its own variational optimizer, so its topic decomposition differs from a stm::stm() run on the same data (a different but valid optimum, not a relabeling). Post-fit numbers match stm given the same model; see the Validation article. Silence with options(faSTM.quiet = TRUE).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> faSTM: fitting K=12 on 1679 docs (batch)...</span>
 </code></pre></div>
     </div>

@@ -31,5 +31,6 @@ data(congress)
 fit <- stm(congress, K = 12, prevalence = ~ party + s(congress),
            content = ~ party + chamber)
 #> faSTM: crossing 2 content covariates (party, chamber) into a saturated content model with 4 groups.
+#> faSTM fits with its own variational optimizer, so its topic decomposition differs from a stm::stm() run on the same data (a different but valid optimum, not a relabeling). Post-fit numbers match stm given the same model; see the Validation article. Silence with options(faSTM.quiet = TRUE).
 #> faSTM: fitting K=12 on 1679 docs (batch)...
 ```
