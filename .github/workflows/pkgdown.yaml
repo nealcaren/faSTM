@@ -15,8 +15,10 @@ permissions: read-all
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
+    # No `environment: github-pages` — we deploy by pushing to the gh-pages
+    # branch (JamesIves below), not via the github-pages environment. Once Pages
+    # is set to "deploy from gh-pages branch", that environment gains a branch
+    # policy that rejects this master-branch job at setup (fails in ~3s, 0 steps).
     permissions:
       contents: write
     concurrency:
