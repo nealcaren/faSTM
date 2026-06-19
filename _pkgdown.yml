@@ -22,6 +22,7 @@ articles:
   contents:
   - faSTM
   - beyond-stm
+  - validation
 
 reference:
 - title: Fitting a model

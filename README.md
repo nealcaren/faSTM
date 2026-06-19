@@ -7,12 +7,12 @@
 
 📖 **Documentation:** <https://nealcaren.github.io/faSTM/>
 
-A fast, modern **Structural Topic Model** for R. faSTM is a modern successor to
-[`stm`](https://github.com/bstewart/stm): it implements the full STM framework
-(prevalence and content covariates, FREX/lift/score labels, semantic coherence,
-representative documents, covariate-effect estimation, model selection, and
-out-of-sample inference) on a self-contained, multithreaded Rust core. It adds an
-estimation and tidy-workflow toolkit on top.
+A fast, **`stm`-compatible reimplementation** of the **Structural Topic Model**
+for R. faSTM reimplements [`stm`](https://github.com/bstewart/stm)'s full
+framework (prevalence and content covariates, FREX/lift/score labels, semantic
+coherence, representative documents, covariate-effect estimation, model
+selection, and out-of-sample inference) on a self-contained, multithreaded Rust
+core, and adds an estimation and tidy-workflow toolkit on top.
 
 faSTM keeps a familiar, `stm`-compatible API, so most `stm` analysis code runs
 with minimal edits and the fitted object is structurally compatible. What it adds
@@ -83,6 +83,12 @@ object is `stm`-shaped, so `stm`'s own readers (`labelTopics()`, `plot.STM()`,
 `sageLabels()`, `findThoughts()`, `estimateEffect()`) run on a faSTM fit, which
 makes migrating existing analyses straightforward. This is parity *given the same
 fit*, not a claim that the two produce the same fit (see above).
+
+The [**Validation** article](https://nealcaren.github.io/faSTM/articles/validation.html)
+checks both live against `stm`: it computes every inspection metric both ways on a
+shared model (asserting equality with `stopifnot`), and shows that faSTM's own
+fit, though a different topic decomposition, reaches held-out likelihood within a
+fraction of a percent of `stm`'s.
 
 ## Status
 
