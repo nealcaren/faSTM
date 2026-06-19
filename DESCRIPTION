@@ -3,10 +3,10 @@ Title: Fast Structural Topic Models
 Version: 0.0.0.9000
 Authors@R:
     person("Neal", "Caren", email = "neal.caren@unc.edu", role = c("aut", "cre"))
-Description: A fast, modern implementation of the Structural Topic Model. faSTM
+Description: A modern implementation of the Structural Topic Model. faSTM
     fits the logistic-normal STM (with prevalence and content covariates) via a
-    Rust core, in seconds where the original 'stm' package takes minutes, and
-    scales to large corpora through an opt-in stochastic-variational path. It is
+    multithreaded Rust core, with an opt-in stochastic-variational path for large
+    corpora. It is
     self-contained: text preparation is read from 'quanteda' or 'tidytext'
     objects, model inspection (labelTopics with FREX/lift/score, findThoughts,
     semantic coherence, exclusivity, topic correlations) and an honest

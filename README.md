@@ -1,17 +1,17 @@
 # faSTM
 
-A fast, modern **Structural Topic Model** for R. faSTM is a modern successor to
+A modern **Structural Topic Model** for R. faSTM is a modern successor to
 [`stm`](https://github.com/bstewart/stm): it implements the full STM framework —
 prevalence and content covariates, FREX/lift/score labels, semantic coherence,
 representative documents, covariate-effect estimation, model selection, and
-out-of-sample inference — on a Rust core that fits in **seconds instead of
-minutes**, scales to large corpora, and is self-contained.
+out-of-sample inference — on a self-contained, multithreaded Rust core, and
+extends it with a richer, more honest estimation and tidy-workflow toolkit.
 
 faSTM keeps a familiar, `stm`-compatible API, so most `stm` analysis code runs
-with minimal edits and the fitted object is structurally compatible. It builds on
-`stm`'s framework and adds modern conveniences on top: an honest `estimateEffect`
-with survey weights, cluster-robust SEs, and random effects; multiple content
-covariates; broom tidiers; and NPMI/c_v coherence.
+with minimal edits and the fitted object is structurally compatible. What it adds
+on top of `stm`'s framework: an honest `estimateEffect` with survey weights,
+cluster-robust SEs, random effects, and average marginal effects; multiple
+content covariates; NPMI/c_v coherence; broom tidiers and a `predict()` method.
 
 **Replicating a specific fit.** STM's objective is non-convex and faSTM uses its
 own optimizer, so an independent fit settles into its own valid, deterministic
@@ -43,9 +43,11 @@ summary(eff)
 
 ## Highlights
 
-- **Speed.** Rust variational EM with a multithreaded E-step — roughly **35×
-  faster** than `stm` across corpus sizes (≈1s vs ≈40s on 10k docs), with a
-  `num_threads` knob.
+- **Engine.** A Rust variational EM with a multithreaded E-step (`num_threads`
+  knob). Performance is competitive with `stm` and faster on parallel workflows —
+  e.g. `search_k` parallelizes across `K` (~3× on the poliblog example). A
+  formal benchmark across corpus sizes is in progress; we'd rather under-promise
+  here than quote a number that doesn't generalize.
 - **Scale.** An opt-in `inference = "svi"` (stochastic variational) path for
   corpora too large for batch EM. *(Covariate-model SVI lands with topica
   [#231](https://github.com/nealcaren/topica/issues/231).)*
