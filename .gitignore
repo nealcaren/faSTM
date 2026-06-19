@@ -22,3 +22,4 @@ src/rust/vendor/
 # configure-generated (from src/Makevars.in)
 src/Makevars
 src/Makevars.win
+docs/

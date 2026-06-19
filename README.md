@@ -1,5 +1,12 @@
 # faSTM
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/nealcaren/faSTM/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/nealcaren/faSTM/actions/workflows/R-CMD-check.yaml)
+[![pkgdown](https://github.com/nealcaren/faSTM/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/nealcaren/faSTM/actions/workflows/pkgdown.yaml)
+<!-- badges: end -->
+
+📖 **Documentation:** <https://nealcaren.github.io/faSTM/>
+
 A fast, modern **Structural Topic Model** for R. faSTM is a modern successor to
 [`stm`](https://github.com/bstewart/stm): it implements the full STM framework —
 prevalence and content covariates, FREX/lift/score labels, semantic coherence,

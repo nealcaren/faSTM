@@ -1,0 +1,128 @@
+url: https://nealcaren.github.io/faSTM/
+
+template:
+  bootstrap: 5
+  bslib:
+    primary: "#2c3e50"
+
+home:
+  title: faSTM — a fast, modern Structural Topic Model for R
+  description: >
+    An stm-compatible Structural Topic Model on a multithreaded Rust core, with a
+    richer, more honest estimation and tidy-workflow toolkit.
+
+navbar:
+  structure:
+    left:  [intro, articles, reference, news]
+    right: [search, github]
+
+articles:
+- title: Articles
+  navbar: ~
+  contents:
+  - faSTM
+  - beyond-stm
+
+reference:
+- title: Fitting a model
+  desc: Fit a structural topic model and build the prevalence design.
+  contents:
+  - stm
+  - s
+  - makeDesignMatrix
+
+- title: Covariate effects
+  desc: >
+    Honest effect estimation (method of composition) with weights, cluster-robust
+    SEs, and random effects; marginal effects and effect plots.
+  contents:
+  - estimateEffect
+  - ame
+  - effect_estimates
+  - posterior_theta_samples
+  - plot.faSTM_effect
+
+- title: Inspecting topics
+  desc: Labels, representative documents, FREX, and topic correlations.
+  contents:
+  - label_topics
+  - sage_labels
+  - find_thoughts
+  - find_topic
+  - topic_terms
+  - topic_proportions
+  - content_topics
+  - frex_scores
+  - topic_correlation
+  - topic_corr_graph
+  - plot.faSTM
+  - plot_topic_network
+
+- title: Topic quality
+  desc: Semantic coherence (Mimno / NPMI / C_V), exclusivity, diagnostics.
+  contents:
+  - coherence
+  - semantic_coherence
+  - exclusivity
+  - check_residuals
+
+- title: Choosing the number of topics
+  desc: Held-out evaluation and model selection across K.
+  contents:
+  - search_k
+  - select_model
+  - select_best
+  - many_topics
+  - multi_stm
+  - make_heldout
+  - eval_heldout
+  - permutation_test
+  - topic_lasso
+  - plot.faSTM_searchk
+  - as.data.frame.faSTM_searchk
+
+- title: Out-of-sample inference
+  desc: Infer topic proportions for new documents.
+  contents:
+  - fit_new_documents
+  - predict.faSTM
+
+- title: Tidy (broom) interface
+  contents:
+  - tidy.faSTM
+  - tidy.faSTM_effect
+  - glance.faSTM
+  - augment.faSTM
+  - reexports
+
+- title: Corpus & text preparation
+  desc: Read prepared text from quanteda / tidytext and convert corpora.
+  contents:
+  - as_corpus
+  - align_corpus
+  - from_tidy
+  - make_dt
+  - read_ldac
+
+- title: Datasets
+  contents:
+  - poliblog
+  - congress
+
+- title: stm-compatibility shims
+  desc: Aliases that keep `stm`-style call sites working unmodified.
+  contents:
+  - alignCorpus
+  - asSTMCorpus
+  - convertCorpus
+  - fitNewDocuments
+  - checkBeta
+
+- title: internal
+  contents:
+  - faSTM-package
+  - fit_stm
+  - infer_theta_new
+  - lda_init_beta
+  - optimizeDocument
+  - calcfrex
