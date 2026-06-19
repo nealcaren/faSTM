@@ -123,10 +123,10 @@ remotes::install_github("nealcaren/faSTM")
 pak::pak("nealcaren/faSTM")
 ```
 
-The first install compiles the Rust core (it fetches and builds the pinned
-`topica` crate from GitHub — needs an internet connection — and takes a couple of
-minutes). After that, the package is **fully self-contained**: it has no runtime
-dependency on Rust, `topica`, or Python.
+The first install compiles the Rust core (it fetches and builds the pinned,
+dependency-light `topica-core` crate from GitHub — needs an internet connection —
+and takes a couple of minutes). After that, the package is **fully
+self-contained**: it has no runtime dependency on Rust, `topica`, or Python.
 
 Optional features pull in extra R packages only when used: `ggplot2` / `ggrepel`
 (plots), `quanteda` / `tidytext` (text prep), `lme4` (random effects), `glmnet`
