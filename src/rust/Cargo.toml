@@ -20,9 +20,9 @@ extendr-api = "0.7"
 # The fitting core: the thin, dependency-light `topica-core` workspace member
 # (CTM/STM/SAGE + CVB0; deps = rand/rand_chacha/rayon/regex only). This is what
 # makes faSTM CRAN-vendorable — no pyo3/numpy/JVM, no full topica (topica#242).
-# Pinned to the topica-core workspace member (topica#242 refactor). rev for now;
-# flip to a topica release tag once refactor/topica-core merges + is tagged.
-topica-core = { git = "https://github.com/nealcaren/topica", rev = "da351690ae1694cb96aaaf738c9ecdabfc271003", default-features = false }
+# topica-core workspace member from the topica v0.25.0 release (topica#242). This
+# thin crate (rand/rand_chacha/rayon/regex; no pyo3/numpy/JVM) is what faSTM vendors for CRAN.
+topica-core = { git = "https://github.com/nealcaren/topica", tag = "v0.25.0", default-features = false }
 # DEV: topica-core = { path = "../../../topica/topica-core", default-features = false }
 
 # Must match topica's lockfile so the `Rng` trait bound and the seed stream are
