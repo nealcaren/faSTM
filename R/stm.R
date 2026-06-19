@@ -194,10 +194,11 @@ stm <- function(documents, vocab, K,
 
 # per-document 2xn integer matrices -> D x V sparse document-term matrix
 .documents_to_dtm <- function(documents, V) {
-  i <- integer(0); j <- integer(0); x <- integer(0)
-  for (d in seq_along(documents)) {
-    m <- documents[[d]]
-    i <- c(i, rep.int(d, ncol(m))); j <- c(j, m[1L, ]); x <- c(x, m[2L, ])
-  }
-  Matrix::sparseMatrix(i = i, j = j, x = x, dims = c(length(documents), V))
+  ## vectorized (the old per-doc c() accumulation was O(n^2) — ~6s on 5k docs)
+  ncols <- vapply(documents, ncol, integer(1L))
+  i <- rep.int(seq_along(documents), ncols)
+  j <- unlist(lapply(documents, function(m) m[1L, ]), use.names = FALSE)
+  x <- unlist(lapply(documents, function(m) m[2L, ]), use.names = FALSE)
+  Matrix::sparseMatrix(i = i, j = as.integer(j), x = as.numeric(x),
+                       dims = c(length(documents), V))
 }
