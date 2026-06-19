@@ -90,5 +90,6 @@ A drop-in replacement for \code{\link[stm:stm]{stm::stm()}}'s fitting step. Acce
 Rust core, and returns an object compatible with the \code{stm} package so that
 \code{\link[stm:labelTopics]{stm::labelTopics()}}, \code{\link[stm:plot.STM]{stm::plot.STM()}}, \code{\link[stm:findThoughts]{stm::findThoughts()}},
 \code{\link[stm:sageLabels]{stm::sageLabels()}}, and \code{\link[stm:toLDAvis]{stm::toLDAvis()}} work unmodified. Use
-\code{\link[=estimateEffect]{estimateEffect()}} from this package for the honest covariate effects.
+\code{\link[=estimateEffect]{estimateEffect()}} from this package for covariate effects that propagate
+topic-estimation uncertainty.
 }

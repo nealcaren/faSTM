@@ -20,8 +20,9 @@ toolkit on top.
 
 ## Covariate effects (`estimateEffect()`)
 
-* Honest effects via the method of composition (per-document posterior draws
-  pooled by Rubin's rules), drawing from each document's own Laplace covariance.
+* Effects via the method of composition (per-document posterior draws pooled by
+  Rubin's rules), drawing from each document's own Laplace covariance, so
+  topic-estimation uncertainty propagates into the standard errors.
 * **Survey weights** (weighted least squares) and **cluster-robust standard
   errors** (sandwich vcov with `stm`'s finite-sample correction).
 * **Random effects** in prevalence: `lme4`-style `(term | group)` terms fit per

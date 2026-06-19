@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
-# Honest faSTM-vs-stm timing on the bundled poliblog data (5000 docs, K=20,
-# prevalence ~ rating + s(day)). NOT run in CI — a manual perf check / guard.
+# Like-for-like faSTM-vs-stm timing on the bundled poliblog data (5000 docs,
+# K=20, prevalence ~ rating + s(day)). NOT run in CI; a manual perf check / guard.
 # Reports wall-clock for the fit, estimateEffect, and search_k; single- and
 # multi-threaded. (A full three-way comparison incl. the Rust `topica` engine
 # lives in the topica repo's benchmarks/, since it needs Python.)

@@ -58,7 +58,7 @@ summary(eff)
 - **Scale.** An opt-in `inference = "svi"` (stochastic variational) path for
   corpora too large for batch EM. *(Covariate-model SVI lands with topica
   [#231](https://github.com/nealcaren/topica/issues/231).)*
-- **Honest effects.** `estimateEffect()` uses the method of
+- **Uncertainty-aware effects.** `estimateEffect()` uses the method of
   composition, propagating per-document posterior uncertainty, and supports
   survey `weights`, cluster-robust SEs, random effects (`(1 | group)` via
   `lme4`), average marginal effects (`ame()`), and `combine`d topics.

@@ -6,7 +6,8 @@
 #' ([stm::textProcessor()], [stm::prepDocuments()]) and post-fit tools
 #' ([stm::labelTopics()], [stm::plot.STM()], [stm::findThoughts()],
 #' [stm::sageLabels()], [stm::toLDAvis()]) are reused from `stm` unchanged;
-#' faSTM contributes the fast fit ([stm()]) and an honest [estimateEffect()].
+#' faSTM contributes the fast fit ([stm()]) and an uncertainty-propagating
+#' [estimateEffect()].
 #'
 #' @keywords internal
 "_PACKAGE"

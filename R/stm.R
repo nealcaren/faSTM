@@ -5,7 +5,8 @@
 #' Rust core, and returns an object compatible with the `stm` package so that
 #' [stm::labelTopics()], [stm::plot.STM()], [stm::findThoughts()],
 #' [stm::sageLabels()], and [stm::toLDAvis()] work unmodified. Use
-#' [estimateEffect()] from this package for the honest covariate effects.
+#' [estimateEffect()] from this package for covariate effects that propagate
+#' topic-estimation uncertainty.
 #'
 #' @param documents stm-format documents: a named list of `2 x n_d` integer
 #'   matrices (row 1 = 1-based word id into `vocab`, row 2 = count). Produced by

@@ -12,7 +12,8 @@ compatible with the \code{stm} package. Text preparation
 (\code{\link[stm:textProcessor]{stm::textProcessor()}}, \code{\link[stm:prepDocuments]{stm::prepDocuments()}}) and post-fit tools
 (\code{\link[stm:labelTopics]{stm::labelTopics()}}, \code{\link[stm:plot.STM]{stm::plot.STM()}}, \code{\link[stm:findThoughts]{stm::findThoughts()}},
 \code{\link[stm:sageLabels]{stm::sageLabels()}}, \code{\link[stm:toLDAvis]{stm::toLDAvis()}}) are reused from \code{stm} unchanged;
-faSTM contributes the fast fit (\code{\link[=stm]{stm()}}) and an honest \code{\link[=estimateEffect]{estimateEffect()}}.
+faSTM contributes the fast fit (\code{\link[=stm]{stm()}}) and an uncertainty-propagating
+\code{\link[=estimateEffect]{estimateEffect()}}.
 }
 \seealso{
 Useful links:

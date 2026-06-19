@@ -92,7 +92,7 @@ The shared vocabulary is fiscal (tax, budget, spending), but Democrats reach for
 distinction prevalence covariates can't capture and content (SAGE) covariates
 can.
 
-## Honest `estimateEffect()`: cluster-robust SEs and weights
+## `estimateEffect()`: cluster-robust SEs and weights
 
 faSTM keeps `stm`'s method-of-composition uncertainty (re-drawing topic
 proportions per simulation) and adds design features grouped data usually needs.
