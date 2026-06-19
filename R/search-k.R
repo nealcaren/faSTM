@@ -24,7 +24,7 @@
 search_k <- function(corpus, K, prevalence = NULL, content = NULL,
                      heldout = TRUE, proportion = 0.5, residuals = FALSE,
                      cores = 1L, M = 10L, seed = 1L,
-                     measure = c("mimno", "npmi", "c_v"), ...) {
+                     measure = c("mimno", "npmi", "c_v"), verbose = FALSE, ...) {
   stopifnot(inherits(corpus, "faSTM_corpus"))
   measure <- match.arg(measure)
   K <- as.integer(K)
@@ -39,7 +39,7 @@ search_k <- function(corpus, K, prevalence = NULL, content = NULL,
 
   one_k <- function(k) {
     fit <- stm(fit_corpus, K = k, prevalence = prevalence, content = content,
-               seed = seed, num_threads = threads, verbose = FALSE, ...)
+               seed = seed, num_threads = threads, verbose = verbose, ...)
     data.frame(
       K           = k,
       heldout     = if (heldout) eval_heldout(fit, ho) else NA_real_,

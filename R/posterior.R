@@ -20,15 +20,21 @@ posterior_theta_samples <- function(model, nsims = 100L, seed = NULL) {
   }
   eta <- model$eta                 # D x (K-1)
   nu <- model$nu                   # list of (K-1)x(K-1)
-  D <- nrow(eta)
-  draws <- vector("list", nsims)
-  for (s in seq_len(nsims)) {
-    etas <- t(vapply(seq_len(D), function(d) {
-      MASS::mvrnorm(1L, mu = eta[d, ], Sigma = nu[[d]])
-    }, numeric(ncol(eta))))
-    draws[[s]] <- .softmax_rows(cbind(etas, 0))
-  }
-  draws
+  D <- nrow(eta); Km1 <- ncol(eta)
+  ## Precompute each document's covariance factor ONCE (chol, eigen fallback for
+  ## non-PD) and sample all draws per doc as eta_d + A_d %*% Z — avoids the
+  ## per-(doc,draw) decomposition MASS::mvrnorm would redo (the old hot loop).
+  fac <- lapply(nu, function(S) {
+    R <- tryCatch(chol(S), error = function(e) NULL)
+    if (!is.null(R)) t(R)
+    else { e <- eigen(S, symmetric = TRUE); e$vectors %*% diag(sqrt(pmax(e$values, 0)), Km1) }
+  })
+  samp <- lapply(seq_len(D), function(d)
+    eta[d, ] + fac[[d]] %*% matrix(stats::rnorm(Km1 * nsims), Km1, nsims))  # Km1 x nsims
+  lapply(seq_len(nsims), function(s) {
+    etas <- t(vapply(samp, function(m) m[, s], numeric(Km1)))               # D x Km1
+    .softmax_rows(cbind(etas, 0))
+  })
 }
 
 .Random.seed_state <- function() if (exists(".Random.seed", .GlobalEnv))
