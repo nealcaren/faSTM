@@ -148,6 +148,11 @@ stm <- function(documents, vocab, K,
   }
 
   ## ---- fit (single Rust call) --------------------------------------------
+  .message_once("fit_optimizer",
+    "faSTM fits with its own variational optimizer, so its topic decomposition ",
+    "differs from a stm::stm() run on the same data (a different but valid optimum, ",
+    "not a relabeling). Post-fit numbers match stm given the same model; see the ",
+    "Validation article. Silence with options(faSTM.quiet = TRUE).")
   if (verbose) message(sprintf("faSTM: fitting K=%d on %d docs (%s)...",
                                K, D, inference))
   raw <- fit_stm(

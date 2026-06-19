@@ -35,6 +35,11 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
   stopifnot(inherits(stmobj, "faSTM"))
   if (is.null(metadata)) stop("supply document metadata via `metadata=` (or `meta=`).", call. = FALSE)
   uncertainty <- match.arg(uncertainty)
+  if (uncertainty == "Global")
+    .message_once("ee_global",
+      "faSTM's estimateEffect draws from each document's own Laplace covariance ",
+      "(stm's \"Local\"); uncertainty = \"Global\" uses these per-document draws, ",
+      "not stm's shared-covariance approximation. Silence with options(faSTM.quiet = TRUE).")
   ## faSTM's method of composition draws from each document's own Laplace
   ## covariance (nu) — i.e. stm's "Local", the accurate option. "Global" is
   ## accepted and uses the same per-document draws (faSTM does not fall back to
