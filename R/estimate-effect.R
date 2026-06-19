@@ -41,15 +41,21 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
 
   K <- ncol(stmobj$theta)
   topics <- .formula_topics(formula, K)
-  rhs <- stats::reformulate(attr(stats::terms(formula), "term.labels"))
-  mf <- stats::model.frame(rhs, data = metadata)
-  mterms <- stats::terms(mf)                      # carries spline knots (predvars)
-  xlevels <- stats::.getXlevels(mterms, mf)       # factor levels, for safe prediction
-  X <- stats::model.matrix(mterms, mf)
+  fml_rhs <- formula; fml_rhs[[2L]] <- NULL          # ~ RHS (drop the topic LHS)
+  has_re <- length(.find_bars(fml_rhs)) > 0L         # any (term | group) ?
+  if (has_re && !requireNamespace("lme4", quietly = TRUE))
+    stop("random-effect terms `( | )` need the 'lme4' package.", call. = FALSE)
+  ## fixed-effects part (for design/plotting/prediction); spline knots are kept.
+  fixed_rhs <- if (has_re) .nobars(fml_rhs) else fml_rhs
+  if (!inherits(fixed_rhs, "formula")) fixed_rhs <- stats::reformulate("1")
+  mf <- stats::model.frame(fixed_rhs, data = metadata)
+  mterms <- stats::terms(mf)
+  xlevels <- stats::.getXlevels(mterms, mf)
   ## survey/sampling weights (WLS) and cluster ids (cluster-robust SEs); aligned
   ## to the model rows that survived model.frame's NA handling.
   w <- if (is.null(weights)) NULL else as.numeric(weights)[as.integer(rownames(mf))]
   cl <- if (is.null(cluster)) NULL else cluster[as.integer(rownames(mf))]
+  X <- if (has_re) NULL else stats::model.matrix(mterms, mf)
 
   if (uncertainty == "None") {
     draws <- list(stmobj$theta)
@@ -57,10 +63,12 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
     draws <- posterior_theta_samples(stmobj, nsims = nsims, seed = seed)
   }
 
-  per_topic <- lapply(topics, function(k) {
-    fits <- lapply(draws, function(th) .ols(X, th[, k], w = w, cluster = cl))
-    .rubin_pool(fits)
-  })
+  ## per-draw fit: OLS (optionally weighted/clustered) or a mixed model (#253).
+  fit_one <- if (has_re) function(y) .lmer_fit(fml_rhs, metadata, y, w)
+             else        function(y) .ols(X, y, w = w, cluster = cl)
+
+  per_topic <- lapply(topics, function(k)
+    .rubin_pool(lapply(draws, function(th) fit_one(th[, k]))))
   names(per_topic) <- paste0("topic", topics)
 
   ## combine topics: estimate the effect on a summed set of topics' proportions,
@@ -70,19 +78,52 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
     if (is.null(names(combine)))
       names(combine) <- vapply(combine, function(s) paste0("topics", paste(s, collapse = "+")),
                                character(1))
-    comb <- lapply(combine, function(set) {
-      fits <- lapply(draws, function(th) .ols(X, rowSums(th[, set, drop = FALSE]), w = w, cluster = cl))
-      .rubin_pool(fits)
-    })
+    comb <- lapply(combine, function(set)
+      .rubin_pool(lapply(draws, function(th) fit_one(rowSums(th[, set, drop = FALSE])))))
     per_topic <- c(per_topic, comb)
   }
 
   out <- list(topics = topics, coefficients = per_topic,
-              terms = colnames(X), formula = formula, metadata = metadata,
+              terms = names(per_topic[[1L]]$est), formula = formula, metadata = metadata,
               mterms = mterms, xlevels = xlevels,
-              uncertainty = uncertainty, nsims = length(draws))
+              uncertainty = uncertainty, nsims = length(draws), random = has_re)
+  ## variance components: a stable refit on the posterior-mean theta per topic.
+  if (has_re) {
+    out$varcomp <- stats::setNames(lapply(topics, function(k) {
+      d <- metadata; d[[".y"]] <- stmobj$theta[, k]
+      m <- lme4::lmer(stats::update(fml_rhs, stats::as.formula(".y ~ .")), data = d, REML = TRUE,
+                      control = lme4::lmerControl(calc.derivs = FALSE, check.conv.singular = "ignore"))
+      as.data.frame(lme4::VarCorr(m))
+    }), paste0("topic", topics))
+  }
   class(out) <- c("faSTM_effect", "estimateEffect")
   out
+}
+
+# random-effects helpers --------------------------------------------------
+# findbars/nobars live in reformulas now (lme4 re-exports them with a warning).
+.find_bars <- function(fml) {
+  if (requireNamespace("reformulas", quietly = TRUE)) return(reformulas::findbars(fml))
+  if (requireNamespace("lme4", quietly = TRUE)) return(suppressWarnings(lme4::findbars(fml)))
+  if (grepl("|", paste(deparse(fml), collapse = " "), fixed = TRUE)) "re" else NULL
+}
+.nobars <- function(fml) {
+  if (requireNamespace("reformulas", quietly = TRUE)) return(reformulas::nobars(fml))
+  suppressWarnings(lme4::nobars(fml))
+}
+
+# fit one mixed model (fixed effects + RE) and return fixed-effect coef + vcov
+.lmer_fit <- function(fml_rhs, data, y, w = NULL) {
+  d <- data; d[[".y"]] <- y
+  full <- stats::update(fml_rhs, stats::as.formula(".y ~ ."))
+  ctrl <- lme4::lmerControl(calc.derivs = FALSE, check.conv.singular = "ignore")
+  ## lme4 evaluates `weights` by NSE in the data, so add it as a column.
+  m <- if (is.null(w)) lme4::lmer(full, data = d, REML = TRUE, control = ctrl)
+       else { d[[".w"]] <- w; lme4::lmer(full, data = d, weights = .w, REML = TRUE, control = ctrl) }
+  fe <- lme4::fixef(m); V <- as.matrix(stats::vcov(m))
+  df <- max(1L, stats::nobs(m) - length(fe))         # large-sample approx (no Satterthwaite)
+  list(coef = fe, vcov = V, df = df, r.squared = NA_real_, fstatistic = NA_real_,
+       df.num = length(fe) - 1L, df.den = df)
 }
 
 #' @export
@@ -109,14 +150,15 @@ summary.faSTM_effect <- function(object, topics = NULL,
     row.names = NULL, check.names = FALSE)
   structure(list(tables = tabs, diagnostics = diagnostics, formula = object$formula,
                  uncertainty = object$uncertainty, nsims = object$nsims,
-                 p.adjust.method = p.adjust.method),
+                 p.adjust.method = p.adjust.method,
+                 random = isTRUE(object$random), varcomp = object$varcomp),
             class = "summary.faSTM_effect")
 }
 
 #' @export
 print.summary.faSTM_effect <- function(x, ...) {
   cat("faSTM estimateEffect (", x$uncertainty, " uncertainty, ",
-      x$nsims, " draws)\n", sep = "")
+      x$nsims, " draws", if (isTRUE(x$random)) ", mixed model" else "", ")\n", sep = "")
   if (!identical(x$p.adjust.method, "none"))
     cat("p-values adjusted: ", x$p.adjust.method, "\n", sep = "")
   for (nm in names(x$tables)) {
@@ -126,6 +168,12 @@ print.summary.faSTM_effect <- function(x, ...) {
     if (nrow(d) && is.finite(d$r.squared))
       cat(sprintf("  R-squared: %.3f | F(%d,%d): %.2f\n",
                   d$r.squared, d$df.num, d$df.den, d$fstatistic))
+    if (isTRUE(x$random) && !is.null(x$varcomp[[nm]])) {
+      vc <- x$varcomp[[nm]]
+      cat("  random effects (sd): ",
+          paste(sprintf("%s=%.4f", ifelse(is.na(vc$var2), vc$grp, paste0(vc$grp, ":", vc$var1)),
+                        vc$sdcor), collapse = ", "), "\n", sep = "")
+    }
   }
   invisible(x)
 }

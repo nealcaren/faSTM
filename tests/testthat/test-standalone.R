@@ -176,6 +176,23 @@ test_that("difference plot with a spline term reuses fitted knots (makepredictca
   expect_s3_class(p, "ggplot")
 })
 
+test_that("random effects in estimateEffect (#253)", {
+  skip_if_not_built(); skip_if_not_installed("quanteda"); skip_if_not_installed("lme4")
+  f <- make_fit(5L); m <- f$corpus$meta
+  set.seed(1); m$grp <- factor(sample(paste0("g", 1:6), nrow(m), TRUE))
+  ef <- estimateEffect(1:5 ~ Party + (1 | grp), f$fit, metadata = m, nsims = 15L, seed = 1L)
+  expect_true(isTRUE(ef$random))
+  expect_true("(Intercept)" %in% ef$terms)
+  expect_false(is.null(ef$varcomp))
+  expect_true("grp" %in% ef$varcomp[["topic1"]]$grp)         # variance component recovered
+  s <- summary(ef, topics = 1)
+  expect_true(isTRUE(s$random))
+  expect_true(all(c("Estimate", "Std. Error") %in% names(s$tables[[1]])))
+  # fixed-effects machinery (tidy / ame) still works on a mixed-model fit
+  expect_true("estimate" %in% names(generics::tidy(ef)))
+  expect_no_error(ame(ef, "Party", topics = 1))
+})
+
 test_that("medium gains: weights + cluster SEs, AME, coherence, broom, predict", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   f <- make_fit(6L); m <- f$corpus$meta

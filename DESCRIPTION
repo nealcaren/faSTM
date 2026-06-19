@@ -33,6 +33,7 @@ Suggests:
     huge,
     igraph,
     LDAvis,
+    lme4,
     clue,
     quanteda,
     stm,
