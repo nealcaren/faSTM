@@ -1,0 +1,10 @@
+pandoc: 3.8.3
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  beyond-stm: beyond-stm.html
+  faSTM: faSTM.html
+last_built: 2026-06-19T15:58Z
+urls:
+  reference: https://nealcaren.github.io/faSTM/reference
+  article: https://nealcaren.github.io/faSTM/articles

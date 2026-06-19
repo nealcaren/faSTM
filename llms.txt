@@ -1,0 +1,362 @@
+# faSTM
+
+📖 **Documentation:** <https://nealcaren.github.io/faSTM/>
+
+A fast, modern **Structural Topic Model** for R. faSTM is a modern
+successor to [`stm`](https://github.com/bstewart/stm): it implements the
+full STM framework — prevalence and content covariates, FREX/lift/score
+labels, semantic coherence, representative documents, covariate-effect
+estimation, model selection, and out-of-sample inference — on a
+self-contained, multithreaded Rust core, and extends it with a richer,
+more honest estimation and tidy-workflow toolkit.
+
+faSTM keeps a familiar, `stm`-compatible API, so most `stm` analysis
+code runs with minimal edits and the fitted object is structurally
+compatible. What it adds on top of `stm`’s framework: an honest
+`estimateEffect` with survey weights, cluster-robust SEs, random
+effects, and average marginal effects; multiple content covariates;
+NPMI/c_v coherence; broom tidiers and a
+[`predict()`](https://rdrr.io/r/stats/predict.html) method.
+
+**Replicating a specific fit.** STM’s objective is non-convex and faSTM
+uses its own optimizer, so an independent fit settles into its own
+valid, deterministic optimum — different topic numbering, not a
+relabeling of a given `stm` run. faSTM’s spectral initialization
+reproduces `stm`’s Arora anchor-recovery step exactly, so when you want
+a guaranteed match you can seed from `stm`’s own spectral β via
+`stm(..., init.beta = )`. All four `init.type`s are supported:
+`"Spectral"`, `"Random"`, `"LDA"` (seeded from a CVB0 LDA), and
+`"Custom"`.
+
+``` r
+
+library(quanteda)   # tokenization (faSTM reads quanteda/tidytext objects directly)
+library(faSTM)
+
+dfmat <- data_corpus_inaugural |>
+  tokens(remove_punct = TRUE) |>
+  tokens_remove(stopwords("en")) |>
+  tokens_wordstem() |>
+  dfm() |>
+  dfm_trim(min_termfreq = 5)
+
+corpus <- as_corpus(dfmat)                     # docvars become metadata
+fit    <- stm(corpus, K = 10, prevalence = ~ Party)
+
+label_topics(fit)                              # prob / FREX / lift / score
+semantic_coherence(fit); exclusivity(fit)
+eff <- estimateEffect(1:10 ~ Party, fit, metadata = corpus$meta)
+summary(eff)
+```
+
+## Highlights
+
+- **Engine.** A multithreaded Rust variational EM (`num_threads` knob).
+  On the poliblog example (5000 docs, K = 20, prevalence
+  `~ rating + s(day)`) faSTM is **~6× faster** than `stm` (4s vs 23s),
+  and **~13× on `search_k`** (it parallelizes across `K`). Both numbers
+  are wall-clock to convergence — faSTM reaches the same fit in more,
+  but far cheaper, iterations.
+- **Scale.** An opt-in `inference = "svi"` (stochastic variational) path
+  for corpora too large for batch EM. *(Covariate-model SVI lands with
+  topica [\#231](https://github.com/nealcaren/topica/issues/231).)*
+- **Honest, flexible effects.**
+  [`estimateEffect()`](https://nealcaren.github.io/faSTM/reference/estimateEffect.md)
+  uses the method of composition, propagating per-document posterior
+  uncertainty, and supports survey `weights`, cluster-robust SEs, random
+  effects (`(1 | group)` via `lme4`), average marginal effects
+  ([`ame()`](https://nealcaren.github.io/faSTM/reference/ame.md)), and
+  `combine`d topics.
+- **Rich inspection.**
+  [`label_topics()`](https://nealcaren.github.io/faSTM/reference/label_topics.md)
+  (prob/FREX/lift/score),
+  [`topic_terms()`](https://nealcaren.github.io/faSTM/reference/topic_terms.md)
+  with numeric scores,
+  [`coherence()`](https://nealcaren.github.io/faSTM/reference/coherence.md)
+  (Mimno / NPMI / c_v),
+  [`exclusivity()`](https://nealcaren.github.io/faSTM/reference/exclusivity.md),
+  [`topic_proportions()`](https://nealcaren.github.io/faSTM/reference/topic_proportions.md),
+  topic correlations and SAGE content labels.
+- **Multiple content covariates.** `content = ~ g + h` fits the fully
+  crossed content model, and
+  [`content_topics()`](https://nealcaren.github.io/faSTM/reference/content_topics.md)
+  recovers each covariate’s marginal vocabulary.
+- **Tidyverse-friendly.**
+  [`tidy()`](https://generics.r-lib.org/reference/tidy.html) /
+  [`glance()`](https://generics.r-lib.org/reference/glance.html) /
+  [`augment()`](https://generics.r-lib.org/reference/augment.html)
+  (broom) and a [`predict()`](https://rdrr.io/r/stats/predict.html)
+  method, alongside a modern **ggplot2** plotting layer.
+- **Self-contained.** Tokenize with `quanteda` / `tidytext` (which the
+  field already uses) and faSTM reads their objects directly; no runtime
+  dependency on Rust, `topica`, or Python once installed.
+
+## Faithful where it counts
+
+On a **shared fit** (same β/θ), faSTM’s inspection numbers match
+`stm`’s: FREX/prob/lift/score labels are **identical** to
+[`stm::labelTopics`](https://rdrr.io/pkg/stm/man/labelTopics.html), and
+[`exclusivity()`](https://nealcaren.github.io/faSTM/reference/exclusivity.md)
+/
+[`semantic_coherence()`](https://nealcaren.github.io/faSTM/reference/semantic_coherence.md)
+match to floating point. The fitted object is `stm`-shaped, so `stm`’s
+own readers — `labelTopics()`, `plot.STM()`, `sageLabels()`,
+`findThoughts()`,
+[`estimateEffect()`](https://nealcaren.github.io/faSTM/reference/estimateEffect.md)
+— run on a faSTM fit, which makes migrating existing analyses
+straightforward. This is parity *given the same fit*, not a claim that
+the two produce the same fit (see above).
+
+## Status
+
+Feature-complete and stabilizing toward a CRAN release. Working today:
+
+- Corpus ingestion from quanteda / tidytext / document-term matrices.
+- Fast fit with prevalence and (one or several, crossed) content
+  covariates, threaded; all four `init.type`s including a real `"LDA"`
+  initializer.
+- Full inspection: labels, FREX/lift/score, coherence (Mimno/NPMI/c_v),
+  exclusivity, topic correlations, SAGE content labels and marginals.
+- `estimateEffect` with Global/Local/None uncertainty, survey weights,
+  cluster-robust SEs, random effects, average marginal effects, combined
+  topics, multiple-testing correction, and R²/F diagnostics.
+- Out-of-sample inference (`fit_new_documents` / `predict` /
+  `fitNewDocuments` with prior modes and posterior return).
+- Model selection (`search_k`, `select_model`, `many_topics`) and a
+  ggplot2 plotting layer (topic summary, covariate effects with CIs,
+  search-K diagnostics, topic-correlation network + igraph export).
+- broom tidiers, `toLDAvis`, `topicQuality`, and stm-compatible exports.
+
+On the roadmap: stochastic variational inference for covariate models
+(topica [\#231](https://github.com/nealcaren/topica/issues/231)).
+
+## Install (beta)
+
+faSTM has a Rust core, so installing from source needs a **Rust
+toolchain** (`cargo` + `rustc`) — one-time setup:
+
+``` sh
+# macOS / Linux: install Rust if you don't have it
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Then, in R — use whichever you already have (they’re equivalent;
+`devtools::install_github` just calls `remotes`):
+
+``` r
+
+# the familiar way
+devtools::install_github("nealcaren/faSTM")
+
+# or the lighter-weight package (no full dev toolkit needed just to install)
+# install.packages("remotes")
+remotes::install_github("nealcaren/faSTM")
+
+# or the modern, fast installer
+# install.packages("pak")
+pak::pak("nealcaren/faSTM")
+```
+
+The first install compiles the Rust core (it fetches and builds the
+pinned, dependency-light `topica-core` crate from GitHub — needs an
+internet connection — and takes a couple of minutes). After that, the
+package is **fully self-contained**: it has no runtime dependency on
+Rust, `topica`, or Python.
+
+Optional features pull in extra R packages only when used: `ggplot2` /
+`ggrepel` (plots), `quanteda` / `tidytext` (text prep), `lme4` (random
+effects), `glmnet` (`topic_lasso`), `igraph` (`topic_corr_graph`),
+`LDAvis` (`toLDAvis`).
+
+> **Beta status.** The API is stabilizing toward a CRAN release. Please
+> file issues at <https://github.com/nealcaren/faSTM/issues> — bug
+> reports, rough edges, and feature requests all welcome.
+
+## License
+
+Apache-2.0.
+
+# Package index
+
+## Fitting a model
+
+Fit a structural topic model and build the prevalence design.
+
+- [`stm()`](https://nealcaren.github.io/faSTM/reference/stm.md) : Fit a
+  structural topic model (fast Rust backend, stm-compatible object)
+- [`s()`](https://nealcaren.github.io/faSTM/reference/s.md) : Spline
+  term for prevalence formulas
+- [`makeDesignMatrix()`](https://nealcaren.github.io/faSTM/reference/makeDesignMatrix.md)
+  : Build a (sparse) design matrix for new data (stm-compatible)
+
+## Covariate effects
+
+Honest effect estimation (method of composition) with weights,
+cluster-robust SEs, and random effects; marginal effects and effect
+plots.
+
+- [`estimateEffect()`](https://nealcaren.github.io/faSTM/reference/estimateEffect.md)
+  : Estimate covariate effects on topic prevalence (method of
+  composition)
+- [`ame()`](https://nealcaren.github.io/faSTM/reference/ame.md) :
+  Average marginal effects from an estimateEffect fit
+- [`effect_estimates()`](https://nealcaren.github.io/faSTM/reference/effect_estimates.md)
+  : Extract estimateEffect estimates as a tidy data.frame (no plotting)
+- [`posterior_theta_samples()`](https://nealcaren.github.io/faSTM/reference/posterior_theta_samples.md)
+  : Draw from the per-document topic-proportion posterior
+- [`plot(`*`<faSTM_effect>`*`)`](https://nealcaren.github.io/faSTM/reference/plot.faSTM_effect.md)
+  : Plot estimated covariate effects on topic prevalence
+
+## Inspecting topics
+
+Labels, representative documents, FREX, and topic correlations.
+
+- [`label_topics()`](https://nealcaren.github.io/faSTM/reference/label_topics.md)
+  : Label topics by top words (prob, FREX, lift, score)
+- [`sage_labels()`](https://nealcaren.github.io/faSTM/reference/sage_labels.md)
+  : Labels for a content (SAGE) model
+- [`find_thoughts()`](https://nealcaren.github.io/faSTM/reference/find_thoughts.md)
+  : Representative documents for each topic
+- [`find_topic()`](https://nealcaren.github.io/faSTM/reference/find_topic.md)
+  : Find topics whose top words include given words
+- [`topic_terms()`](https://nealcaren.github.io/faSTM/reference/topic_terms.md)
+  : Top terms per topic, with their numeric scores (tidy)
+- [`topic_proportions()`](https://nealcaren.github.io/faSTM/reference/topic_proportions.md)
+  : Expected topic proportions (the numbers behind the summary plot)
+- [`content_topics()`](https://nealcaren.github.io/faSTM/reference/content_topics.md)
+  : Marginal content words by one content covariate
+- [`frex_scores()`](https://nealcaren.github.io/faSTM/reference/frex_scores.md)
+  : FREX scores for every word and topic
+- [`topic_correlation()`](https://nealcaren.github.io/faSTM/reference/topic_correlation.md)
+  : Topic correlation graph (positive correlations of topic proportions)
+- [`topic_corr_graph()`](https://nealcaren.github.io/faSTM/reference/topic_corr_graph.md)
+  : Topic-correlation network as an igraph graph
+- [`plot(`*`<faSTM>`*`)`](https://nealcaren.github.io/faSTM/reference/plot.faSTM.md)
+  : Plot a fitted model
+- [`plot_topic_network()`](https://nealcaren.github.io/faSTM/reference/plot_topic_network.md)
+  : Topic correlation network
+
+## Topic quality
+
+Semantic coherence (Mimno / NPMI / C_V), exclusivity, diagnostics.
+
+- [`coherence()`](https://nealcaren.github.io/faSTM/reference/coherence.md)
+  : Topic coherence (Mimno / NPMI / c_v)
+- [`semantic_coherence()`](https://nealcaren.github.io/faSTM/reference/semantic_coherence.md)
+  : Semantic coherence (Mimno et al. 2011)
+- [`exclusivity()`](https://nealcaren.github.io/faSTM/reference/exclusivity.md)
+  : Topic exclusivity (FREX-summary, frexw default 0.7)
+- [`check_residuals()`](https://nealcaren.github.io/faSTM/reference/check_residuals.md)
+  : Residual dispersion check (is K large enough?)
+
+## Choosing the number of topics
+
+Held-out evaluation and model selection across K.
+
+- [`search_k()`](https://nealcaren.github.io/faSTM/reference/search_k.md)
+  : Search over the number of topics K
+
+- [`select_model()`](https://nealcaren.github.io/faSTM/reference/select_model.md)
+  : Fit several models and keep the ones on the quality frontier
+
+- [`select_best()`](https://nealcaren.github.io/faSTM/reference/select_best.md)
+  :
+
+  Pick one model from a `select_model` run
+
+- [`many_topics()`](https://nealcaren.github.io/faSTM/reference/many_topics.md)
+  : Select models across a range of K
+
+- [`multi_stm()`](https://nealcaren.github.io/faSTM/reference/multi_stm.md)
+  : Cross-run topic stability
+
+- [`make_heldout()`](https://nealcaren.github.io/faSTM/reference/make_heldout.md)
+  : Create a held-out version of a corpus for document-completion
+  validation
+
+- [`eval_heldout()`](https://nealcaren.github.io/faSTM/reference/eval_heldout.md)
+  : Evaluate held-out log-likelihood of a fit on a held-out set
+
+- [`permutation_test()`](https://nealcaren.github.io/faSTM/reference/permutation_test.md)
+  : Permutation test for a binary covariate's effect on topics
+
+- [`topic_lasso()`](https://nealcaren.github.io/faSTM/reference/topic_lasso.md)
+  : Predict a document-level outcome from topic proportions (lasso)
+
+- [`plot(`*`<faSTM_searchk>`*`)`](https://nealcaren.github.io/faSTM/reference/plot.faSTM_searchk.md)
+  : Plot search_k diagnostics
+
+- [`as.data.frame(`*`<faSTM_searchk>`*`)`](https://nealcaren.github.io/faSTM/reference/as.data.frame.faSTM_searchk.md)
+  : Convert search_k diagnostics to long form for plotting
+
+## Out-of-sample inference
+
+Infer topic proportions for new documents.
+
+- [`fit_new_documents()`](https://nealcaren.github.io/faSTM/reference/fit_new_documents.md)
+  : Infer topic proportions for new documents
+- [`predict(`*`<faSTM>`*`)`](https://nealcaren.github.io/faSTM/reference/predict.faSTM.md)
+  : Predict topic proportions for new documents
+
+## Tidy (broom) interface
+
+- [`tidy(`*`<faSTM>`*`)`](https://nealcaren.github.io/faSTM/reference/tidy.faSTM.md)
+  : Tidy a faSTM fit (topic-term or document-topic distributions)
+- [`tidy(`*`<faSTM_effect>`*`)`](https://nealcaren.github.io/faSTM/reference/tidy.faSTM_effect.md)
+  : Tidy an estimateEffect fit (one row per term per topic)
+- [`glance(`*`<faSTM>`*`)`](https://nealcaren.github.io/faSTM/reference/glance.faSTM.md)
+  : One-row model summary for a faSTM fit
+- [`augment(`*`<faSTM>`*`)`](https://nealcaren.github.io/faSTM/reference/augment.faSTM.md)
+  : Augment: most-likely topic for each document-term token
+- [`reexports`](https://nealcaren.github.io/faSTM/reference/reexports.md)
+  [`tidy`](https://nealcaren.github.io/faSTM/reference/reexports.md)
+  [`glance`](https://nealcaren.github.io/faSTM/reference/reexports.md)
+  [`augment`](https://nealcaren.github.io/faSTM/reference/reexports.md)
+  : Objects exported from other packages
+
+## Corpus & text preparation
+
+Read prepared text from quanteda / tidytext and convert corpora.
+
+- [`as_corpus()`](https://nealcaren.github.io/faSTM/reference/as_corpus.md)
+  : Build a faSTM corpus from prepared text
+- [`align_corpus()`](https://nealcaren.github.io/faSTM/reference/align_corpus.md)
+  : Align a new corpus to a fitted model's vocabulary
+- [`from_tidy()`](https://nealcaren.github.io/faSTM/reference/from_tidy.md)
+  : Build a faSTM corpus from a tidy (long) term-count table
+- [`make_dt()`](https://nealcaren.github.io/faSTM/reference/make_dt.md)
+  : Document-topic proportions as a data frame
+- [`read_ldac()`](https://nealcaren.github.io/faSTM/reference/read_ldac.md)
+  [`write_ldac()`](https://nealcaren.github.io/faSTM/reference/read_ldac.md)
+  : Read/write a corpus in LDA-C (Blei) sparse format
+
+## Datasets
+
+- [`poliblog`](https://nealcaren.github.io/faSTM/reference/poliblog.md)
+  : CMU 2008 Political Blog Corpus (poliblog5k)
+- [`congress`](https://nealcaren.github.io/faSTM/reference/congress.md)
+  : U.S. Congressional Speeches (Party x Chamber, 1987-2011)
+
+## stm-compatibility shims
+
+Aliases that keep `stm`-style call sites working unmodified.
+
+- [`alignCorpus()`](https://nealcaren.github.io/faSTM/reference/alignCorpus.md)
+  : Align a new corpus to a reference vocabulary (stm-compatible)
+- [`asSTMCorpus()`](https://nealcaren.github.io/faSTM/reference/asSTMCorpus.md)
+  : Coerce inputs into an stm-style corpus (stm-compatible)
+- [`convertCorpus()`](https://nealcaren.github.io/faSTM/reference/convertCorpus.md)
+  : Convert documents/vocab between corpus formats (stm-compatible)
+- [`fitNewDocuments()`](https://nealcaren.github.io/faSTM/reference/fitNewDocuments.md)
+  : Infer topics for new documents (stm-compatible signature)
+- [`checkBeta()`](https://nealcaren.github.io/faSTM/reference/checkBeta.md)
+  : Flag words that load almost entirely on one topic
+
+# Articles
+
+### Articles
+
+- [faSTM: the stm vignette, run on
+  faSTM](https://nealcaren.github.io/faSTM/articles/faSTM.md):
+- [Beyond stm: faSTM's
+  extensions](https://nealcaren.github.io/faSTM/articles/beyond-stm.md):
