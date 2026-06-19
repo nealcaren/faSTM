@@ -54,9 +54,12 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
   mterms <- stats::terms(mf)
   xlevels <- stats::.getXlevels(mterms, mf)
   ## survey/sampling weights (WLS) and cluster ids (cluster-robust SEs); aligned
-  ## to the model rows that survived model.frame's NA handling.
-  w <- if (is.null(weights)) NULL else as.numeric(weights)[as.integer(rownames(mf))]
-  cl <- if (is.null(cluster)) NULL else cluster[as.integer(rownames(mf))]
+  ## by POSITION to the metadata rows that survived model.frame's NA handling.
+  ## (match on rownames, not as.integer(rownames) — metadata from prepDocuments
+  ## keeps original, non-sequential rownames, so positional indexing is required.)
+  keep <- match(rownames(mf), rownames(metadata))
+  w <- if (is.null(weights)) NULL else as.numeric(weights)[keep]
+  cl <- if (is.null(cluster)) NULL else cluster[keep]
   X <- if (has_re) NULL else stats::model.matrix(mterms, mf)
 
   if (uncertainty == "None") {

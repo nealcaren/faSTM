@@ -44,10 +44,10 @@ summary(eff)
 ## Highlights
 
 - **Engine.** A multithreaded Rust variational EM (`num_threads` knob). On the
-  poliblog example (5000 docs, K = 20, prevalence `~ rating + s(day)`, fit to
-  convergence) faSTM is **~6× faster** than `stm` (4s vs 23s), and **~13× on
-  `search_k`** (it parallelizes across `K`). Per iteration the engine is ~5×
-  faster; larger corpora and longer searches widen the gap.
+  poliblog example (5000 docs, K = 20, prevalence `~ rating + s(day)`) faSTM is
+  **~6× faster** than `stm` (4s vs 23s), and **~13× on `search_k`** (it
+  parallelizes across `K`). Both numbers are wall-clock to convergence — faSTM
+  reaches the same fit in more, but far cheaper, iterations.
 - **Scale.** An opt-in `inference = "svi"` (stochastic variational) path for
   corpora too large for batch EM. *(Covariate-model SVI lands with topica
   [#231](https://github.com/nealcaren/topica/issues/231).)*

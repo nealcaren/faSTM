@@ -397,3 +397,21 @@ test_that("svi + covariates is gated until topica STM-SVI is pinned", {
     "STM-SVI"
   )
 })
+
+test_that("estimateEffect weights/cluster align by position (non-sequential meta rownames)", {
+  skip_if_not_built()
+  data(poliblog, package = "faSTM")
+  out <- list(documents = poliblog$documents, vocab = poliblog$vocab, meta = poliblog$meta)
+  # poliblog meta keeps original (non-1:n) rownames; weights/cluster must still map.
+  expect_false(identical(rownames(out$meta), as.character(seq_len(nrow(out$meta)))))
+  fit <- stm(out$documents, out$vocab, K = 6, prevalence = ~ rating, data = out$meta,
+             max.em.its = 8L, verbose = FALSE)
+  w <- with(out$meta, ifelse(rating == "Liberal", 1.3, 0.8))
+  eff_w  <- estimateEffect(1:6 ~ rating, fit, metadata = out$meta, weights = w, nsims = 10L)
+  eff_cl <- estimateEffect(1:6 ~ rating, fit, metadata = out$meta, cluster = out$meta$blog, nsims = 10L)
+  eff_u  <- estimateEffect(1:6 ~ rating, fit, metadata = out$meta, nsims = 10L)
+  expect_s3_class(eff_w, "faSTM_effect")
+  expect_s3_class(eff_cl, "faSTM_effect")
+  # weights actually change the estimate vs unweighted
+  expect_false(isTRUE(all.equal(eff_w$coefficients[[1]]$est, eff_u$coefficients[[1]]$est)))
+})
