@@ -4,12 +4,14 @@ documents / vocab / prevalence / content inputs, fits with topica's
 Rust core, and returns an object compatible with the stm package so that
 stm::labelTopics(), stm::plot.STM(), stm::findThoughts(),
 stm::sageLabels(), and stm::toLDAvis() work unmodified. Use
-estimateEffect() from this package for the honest covariate effects."><meta property="og:description" content="A drop-in replacement for stm::stm()'s fitting step. Accepts the same
+estimateEffect() from this package for covariate effects that propagate
+topic-estimation uncertainty."><meta property="og:description" content="A drop-in replacement for stm::stm()'s fitting step. Accepts the same
 documents / vocab / prevalence / content inputs, fits with topica's
 Rust core, and returns an object compatible with the stm package so that
 stm::labelTopics(), stm::plot.STM(), stm::findThoughts(),
 stm::sageLabels(), and stm::toLDAvis() work unmodified. Use
-estimateEffect() from this package for the honest covariate effects."></head><body>
+estimateEffect() from this package for covariate effects that propagate
+topic-estimation uncertainty."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -29,6 +31,7 @@ estimateEffect() from this package for the honest covariate effects."></head><bo
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/beyond-stm.html">Beyond stm: faSTM's extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validation: parity with stm, and fit quality</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -54,7 +57,8 @@ estimateEffect() from this package for the honest covariate effects."></head><bo
 Rust core, and returns an object compatible with the <code>stm</code> package so that
 <code><a href="https://rdrr.io/pkg/stm/man/labelTopics.html" class="external-link">stm::labelTopics()</a></code>, <code><a href="https://rdrr.io/pkg/stm/man/plot.STM.html" class="external-link">stm::plot.STM()</a></code>, <code><a href="https://rdrr.io/pkg/stm/man/findThoughts.html" class="external-link">stm::findThoughts()</a></code>,
 <code><a href="https://rdrr.io/pkg/stm/man/sageLabels.html" class="external-link">stm::sageLabels()</a></code>, and <code><a href="https://rdrr.io/pkg/stm/man/toLDAvis.html" class="external-link">stm::toLDAvis()</a></code> work unmodified. Use
-<code><a href="estimateEffect.html">estimateEffect()</a></code> from this package for the honest covariate effects.</p>
+<code><a href="estimateEffect.html">estimateEffect()</a></code> from this package for covariate effects that propagate
+topic-estimation uncertainty.</p>
     </div>
 
     <div class="section level2">

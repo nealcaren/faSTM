@@ -19,6 +19,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/beyond-stm.html">Beyond stm: faSTM's extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validation: parity with stm, and fit quality</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -39,24 +40,24 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="fastm-0009000-development">faSTM 0.0.0.9000 (development)<a class="anchor" aria-label="anchor" href="#fastm-0009000-development"></a></h2>
-<p>A fast, modern Structural Topic Model for R: an <code>stm</code>-compatible fitting backend on a multithreaded Rust core (<code>topica</code>), plus a richer effects and tidy-workflow toolkit on top.</p>
+<p>A fast, modern Structural Topic Model for R: an <code>stm</code>-compatible fitting backend on a multithreaded Rust core (<code>topica</code>), plus an effects and tidy-workflow toolkit on top.</p>
 <div class="section level3">
 <h3 id="fitting-0-0-0-9000">Fitting<a class="anchor" aria-label="anchor" href="#fitting-0-0-0-9000"></a></h3>
 <ul><li>
-<code><a href="../reference/stm.html">stm()</a></code> — fast STM fit via <code>topica</code>’s Rust <code>fit_ctm</code>, returning a <code>c("faSTM", "STM")</code> object compatible with the <code>stm</code> package’s post-fit functions (<code>labelTopics</code>, <code>plot</code>, <code>findThoughts</code>, <code>sageLabels</code>, <code>toLDAvis</code>). Prevalence and content (SAGE) covariates, spectral / LDA / random / custom initialization, and a <code>num_threads</code> knob. ~6x faster than <code>stm</code> on the poliblog example (and ~13x on <code>search_k</code>), wall-clock to convergence.</li>
+<code><a href="../reference/stm.html">stm()</a></code>: fast STM fit via <code>topica</code>’s Rust <code>fit_ctm</code>, returning a <code>c("faSTM", "STM")</code> object compatible with the <code>stm</code> package’s post-fit functions (<code>labelTopics</code>, <code>plot</code>, <code>findThoughts</code>, <code>sageLabels</code>, <code>toLDAvis</code>). Prevalence and content (SAGE) covariates, spectral / LDA / random / custom initialization, and a <code>num_threads</code> knob. ~6x faster than <code>stm</code> on the poliblog example (and ~13x on <code>search_k</code>), wall-clock to convergence.</li>
 <li>
-<strong>Multiple content covariates</strong> — <code>content = ~ a + b</code> crosses covariates into a saturated SAGE content model (one topic-word distribution per level combination), beyond <code>stm</code>’s single content variable.</li>
+<strong>Multiple content covariates</strong>: <code>content = ~ a + b</code> crosses covariates into a saturated SAGE content model (one topic-word distribution per level combination), beyond <code>stm</code>’s single content variable.</li>
 <li>SVI kwargs (<code>inference</code>, <code>batch_size</code>, <code>tau</code>, <code>kappa</code>) plumbed through ahead of <code>topica</code>’s STM-SVI landing (topica <a href="https://github.com/nealcaren/faSTM/issues/231" class="external-link">#231</a>); gated for prevalence/content for now.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="covariate-effects-estimateeffect-0-0-0-9000">Covariate effects (<code>estimateEffect()</code>)<a class="anchor" aria-label="anchor" href="#covariate-effects-estimateeffect-0-0-0-9000"></a></h3>
-<ul><li>Honest effects via the method of composition (per-document posterior draws pooled by Rubin’s rules), drawing from each document’s own Laplace covariance.</li>
+<ul><li>Effects via the method of composition (per-document posterior draws pooled by Rubin’s rules), drawing from each document’s own Laplace covariance, so topic-estimation uncertainty propagates into the standard errors.</li>
 <li>
 <strong>Survey weights</strong> (weighted least squares) and <strong>cluster-robust standard errors</strong> (sandwich vcov with <code>stm</code>’s finite-sample correction).</li>
 <li>
-<strong>Random effects</strong> in prevalence — <code>lme4</code>-style <code>(term | group)</code> terms fit per draw and pooled.</li>
+<strong>Random effects</strong> in prevalence: <code>lme4</code>-style <code>(term | group)</code> terms fit per draw and pooled.</li>
 <li>
-<code><a href="../reference/ame.html">ame()</a></code> — average marginal effects; <code><a href="../reference/effect_estimates.html">effect_estimates()</a></code> — tidy effect tables; <code>combine</code> for aggregate-topic effects.</li>
+<code><a href="../reference/ame.html">ame()</a></code> for average marginal effects; <code><a href="../reference/effect_estimates.html">effect_estimates()</a></code> for tidy effect tables; <code>combine</code> for aggregate-topic effects.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="inspection--topic-quality-0-0-0-9000">Inspection &amp; topic quality<a class="anchor" aria-label="anchor" href="#inspection--topic-quality-0-0-0-9000"></a></h3>
@@ -68,7 +69,7 @@
 <div class="section level3">
 <h3 id="model-selection-0-0-0-9000">Model selection<a class="anchor" aria-label="anchor" href="#model-selection-0-0-0-9000"></a></h3>
 <ul><li>
-<code><a href="../reference/search_k.html">search_k()</a></code> — parallelizes across K (bstewart/stm#262) and selects by held-out likelihood or any coherence measure; <code><a href="../reference/select_model.html">select_model()</a></code>, <code><a href="../reference/many_topics.html">many_topics()</a></code>, <code><a href="../reference/make_heldout.html">make_heldout()</a></code> / <code><a href="../reference/eval_heldout.html">eval_heldout()</a></code>.</li>
+<code><a href="../reference/search_k.html">search_k()</a></code>: parallelizes across K (bstewart/stm#262) and selects by held-out likelihood or any coherence measure; <code><a href="../reference/select_model.html">select_model()</a></code>, <code><a href="../reference/many_topics.html">many_topics()</a></code>, <code><a href="../reference/make_heldout.html">make_heldout()</a></code> / <code><a href="../reference/eval_heldout.html">eval_heldout()</a></code>.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="tidyverse--out-of-sample-0-0-0-9000">Tidyverse &amp; out-of-sample<a class="anchor" aria-label="anchor" href="#tidyverse--out-of-sample-0-0-0-9000"></a></h3>
@@ -80,16 +81,16 @@
 <div class="section level3">
 <h3 id="data-0-0-0-9000">Data<a class="anchor" aria-label="anchor" href="#data-0-0-0-9000"></a></h3>
 <ul><li>
-<code>poliblog</code> — the CMU 2008 political-blog corpus (the <code>stm</code> vignette example).</li>
+<code>poliblog</code>: the CMU 2008 political-blog corpus (the <code>stm</code> vignette example).</li>
 <li>
-<code>congress</code> — 1,679 balanced U.S. House/Senate floor speeches, Congresses 100–111 (party × chamber × time), for the multiple-content-covariate and over-time demos.</li>
+<code>congress</code>: 1,679 balanced U.S. House/Senate floor speeches, Congresses 100–111 (party × chamber × time), for the multiple-content-covariate and over-time demos.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="vignettes-0-0-0-9000">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes-0-0-0-9000"></a></h3>
 <ul><li>
-<em>faSTM: the stm vignette, run on faSTM</em> — the <code>stm</code> workflow, fit live.</li>
+<em>faSTM: the stm vignette, run on faSTM</em>. The <code>stm</code> workflow, fit live.</li>
 <li>
-<em>Beyond stm: faSTM’s extensions</em> — the tools above, on the <code>congress</code> corpus.</li>
+<em>Beyond stm: faSTM’s extensions</em>. The tools above, on the <code>congress</code> corpus.</li>
 </ul></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

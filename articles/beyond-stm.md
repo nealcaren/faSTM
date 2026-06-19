@@ -4,16 +4,16 @@ The [companion
 vignette](https://nealcaren.github.io/faSTM/articles/faSTM.md) shows
 that faSTM runs the *same* analysis as the `stm` package. This one
 covers what faSTM adds **on top of** that framework: multiple content
-covariates, a richer and more honest
-[`estimateEffect()`](https://nealcaren.github.io/faSTM/reference/estimateEffect.md),
-alternative coherence metrics, and a tidyverse-friendly surface. None of
-these require leaving the `stm`-compatible object — they are extra
-tools, not a different model.
+covariates, an
+[`estimateEffect()`](https://nealcaren.github.io/faSTM/reference/estimateEffect.md)
+with weights and clustering, alternative coherence metrics, and a
+tidyverse-friendly surface. None of these require leaving the
+`stm`-compatible object; they are extra tools, not a different model.
 
 We use a second bundled corpus, `congress`: a balanced sample of **1,679
 U.S. House and Senate floor speeches**, Congresses 100–111 (1987–2011),
 with metadata `party` (Democrat/Republican), `chamber` (House/Senate),
-and `congress` (the time index). It is built for exactly this vignette —
+and `congress` (the time index). It is built for exactly this vignette:
 two categorical covariates that cross, plus a time axis.
 
 ``` r
@@ -29,8 +29,8 @@ table(congress$meta$party, congress$meta$chamber)
 #>   Republican   419    420
 ```
 
-We fit one prevalence model — topic prevalence as a function of
-**party** and a smooth of **time** — and reuse it throughout.
+We fit one prevalence model (topic prevalence as a function of **party**
+and a smooth of **time**) and reuse it throughout.
 
 ``` r
 
@@ -41,7 +41,7 @@ fit <- stm(congress, K = 12, prevalence = ~ party + s(congress),
 ## Multiple content covariates
 
 `stm` allows a single content (SAGE) covariate. faSTM accepts several
-and crosses them into a **saturated** content model — one topic-word
+and crosses them into a **saturated** content model: one topic-word
 distribution per combination of levels. Here `party` (2) × `chamber` (2)
 gives a 4-group content model, so we can read how *Democrats vs
 Republicans* and *House vs Senate* word each topic differently:
@@ -73,7 +73,7 @@ marginals can be recovered later.
 
 Content covariates are where the interesting partisan signal lives.
 Above, `estimateEffect` will show that Democrats and Republicans devote
-*similar prevalence* to the budget/tax topic — but they **word it very
+*similar prevalence* to the budget/tax topic, but they **word it very
 differently**. A `~ party` content model makes that concrete:
 
 ``` r
@@ -97,17 +97,17 @@ sl$bygroup$Republican[tax, ]   # how Republicans word it
 
 The shared vocabulary is fiscal (tax, budget, spending), but Democrats
 reach for *health, care, children, preexisting, denied* while
-Republicans reach for *taxing, taxed, CBO, authority* — same topic,
+Republicans reach for *taxing, taxed, CBO, authority*: same topic,
 opposite framing. This is the distinction prevalence covariates can’t
 capture and content (SAGE) covariates can.
 
-## Honest `estimateEffect()`: cluster-robust SEs and weights
+## `estimateEffect()`: cluster-robust SEs and weights
 
 faSTM keeps `stm`’s method-of-composition uncertainty (re-drawing topic
 proportions per simulation) and adds design features grouped data
 usually needs.
 
-**Cluster-robust standard errors** — speeches within a Congress are not
+**Cluster-robust standard errors.** Speeches within a Congress are not
 independent, so we cluster by `congress`. faSTM swaps the classical vcov
 for a sandwich estimator with `stm`’s finite-sample correction:
 
@@ -158,8 +158,8 @@ summary(eff_re, topics = 3)   # fixed effects + pooled variance components
 
 Coefficients on splines and factors are hard to read.
 [`ame()`](https://nealcaren.github.io/faSTM/reference/ame.md) reports
-the **average marginal effect** — the mean change in topic proportion
-for a Republican-vs-Democrat shift, averaged over the sample:
+the **average marginal effect**: the mean change in topic proportion for
+a Republican-vs-Democrat shift, averaged over the sample:
 
 ``` r
 
@@ -185,9 +185,8 @@ plot(eff, "congress", method = "continuous", topics = 3,
 
 ## Coherence: NPMI and C_V
 
-Alongside Mimno’s semantic coherence, faSTM offers the two coherence
-metrics most used in the modern topic-model literature — **NPMI** and
-**C_V**:
+Alongside Mimno’s semantic coherence, faSTM offers two more coherence
+metrics common in the topic-model literature: **NPMI** and **C_V**:
 
 ``` r
 

@@ -34,6 +34,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/beyond-stm.html">Beyond stm: faSTM's extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validation: parity with stm, and fit quality</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -68,13 +69,26 @@
     
 <p>This vignette walks through the <strong>same analysis as the
 <code>stm</code> package vignette</strong> (Roberts, Stewart &amp;
-Tingley), using the identical CMU 2008 political-blog corpus — but every
+Tingley), using the identical CMU 2008 political-blog corpus, but every
 model is <strong>fit live</strong> here, because faSTM fits in seconds
 where <code>stm</code> takes minutes. (The <code>stm</code> vignette
 loads pre-computed objects to avoid the wait; faSTM does not need to.)
 The code mirrors the <code>stm</code> vignette’s calls. Because each fit
-is fresh, the <em>topic numbers</em> differ from the original — the
+is fresh, the <em>topic numbers</em> differ from the original. The
 workflow, not the specific topics, is what carries over.</p>
+<blockquote>
+<p><strong>A note on the plots.</strong> faSTM’s <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>
+methods are restyled (ggplot), <em>re-defaulted</em> versions of stm’s,
+not pixel-for-pixel copies. Two differences worth knowing.
+<code>plot(type = "summary")</code> ranks words by <strong>FREX</strong>
+(stm defaults to highest-probability, so pass
+<code>labeltype = "prob"</code> for stm-style labels). And
+<code>plotModels()</code> draws stm’s full <strong>per-topic
+cloud</strong> (faint, one point per topic coloured by model)
+<em>and</em> overlays <strong>bold model-mean points</strong> with the
+non-dominated models highlighted on a “quality frontier”, so you see
+both the spread and the summary at once.</p>
+</blockquote>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nealcaren.github.io/faSTM/">faSTM</a></span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
@@ -103,8 +117,8 @@ prepared:</p>
 <div class="section level2">
 <h2 id="estimating-the-structural-topic-model">Estimating the structural topic model<a class="anchor" aria-label="anchor" href="#estimating-the-structural-topic-model"></a>
 </h2>
-<p>The headline call mirrors the <code>stm</code> vignette exactly —
-topic prevalence varies with <code>rating</code> and a smooth function
+<p>The headline call mirrors the <code>stm</code> vignette exactly.
+Topic prevalence varies with <code>rating</code> and a smooth function
 of <code>day</code>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">poliblogPrevFit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stm.html">stm</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">documents</span>, <span class="va">out</span><span class="op">$</span><span class="va">vocab</span>, K <span class="op">=</span> <span class="fl">20</span>,</span>
@@ -125,7 +139,7 @@ a few candidates here to keep the vignette quick.)</p>
 <span><span class="fu">plotModels</span><span class="op">(</span><span class="va">poliblogSelect</span><span class="op">)</span></span></code></pre></div>
 <p><img src="faSTM_files/figure-html/select-1.png" class="r-plt" alt="" width="672"></p>
 <p><code>searchK()</code> sweeps the number of topics, reporting
-held-out likelihood, semantic coherence and exclusivity — and
+held-out likelihood, semantic coherence, and exclusivity. It also
 parallelizes across K:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">storage</span> <span class="op">&lt;-</span> <span class="fu">searchK</span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">documents</span>, <span class="va">out</span><span class="op">$</span><span class="va">vocab</span>, K <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span>,</span>
@@ -156,8 +170,9 @@ parallelizes across K:</p>
 <span><span class="co">#&gt;   Score:        deleg, convent, clinton, will, pledg, denver, nomin</span></span></code></pre></div>
 <p>Representative documents per topic, displayed as wrapped quotes:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">thoughts3</span> <span class="op">&lt;-</span> <span class="fu">findThoughts</span><span class="op">(</span><span class="va">poliblogPrevFit</span>, texts <span class="op">=</span> <span class="va">out</span><span class="op">$</span><span class="va">meta</span><span class="op">$</span><span class="va">text</span>, n <span class="op">=</span> <span class="fl">2</span>, topics <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="va">docs</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu">plotQuote</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">thoughts3</span>, <span class="fl">1</span>, <span class="fl">200</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">50</span>, main <span class="op">=</span> <span class="st">"Topic 3"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># bundled poliblog text is short (~50-char) snippets, so a few fill the panel</span></span>
+<span><span class="va">thoughts3</span> <span class="op">&lt;-</span> <span class="fu">findThoughts</span><span class="op">(</span><span class="va">poliblogPrevFit</span>, texts <span class="op">=</span> <span class="va">out</span><span class="op">$</span><span class="va">meta</span><span class="op">$</span><span class="va">text</span>, n <span class="op">=</span> <span class="fl">4</span>, topics <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="va">docs</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="fu">plotQuote</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">thoughts3</span>, <span class="fl">1</span>, <span class="fl">200</span><span class="op">)</span>, width <span class="op">=</span> <span class="fl">60</span>, main <span class="op">=</span> <span class="st">"Topic 3"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="faSTM_files/figure-html/thoughts-1.png" class="r-plt" alt="" width="672"></p>
 <p>Topics ranked by their expected prevalence in the corpus:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -168,8 +183,8 @@ parallelizes across K:</p>
 <h2 id="covariate-effects-on-topic-prevalence">Covariate effects on topic prevalence<a class="anchor" aria-label="anchor" href="#covariate-effects-on-topic-prevalence"></a>
 </h2>
 <p><code><a href="../reference/estimateEffect.html">estimateEffect()</a></code> regresses topic proportions on the
-covariates, propagating topic-estimation uncertainty (the honest method
-of composition):</p>
+covariates, propagating topic-estimation uncertainty (the method of
+composition):</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">out</span><span class="op">$</span><span class="va">meta</span><span class="op">$</span><span class="va">rating</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">as.factor</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">meta</span><span class="op">$</span><span class="va">rating</span><span class="op">)</span></span>
 <span><span class="va">prep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estimateEffect.html">estimateEffect</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">20</span> <span class="op">~</span> <span class="va">rating</span> <span class="op">+</span> <span class="fu"><a href="../reference/s.html">s</a></span><span class="op">(</span><span class="va">day</span><span class="op">)</span>, <span class="va">poliblogPrevFit</span>,</span>
@@ -220,8 +235,8 @@ a topic:</p>
 <div class="section level2">
 <h2 id="interactions">Interactions<a class="anchor" aria-label="anchor" href="#interactions"></a>
 </h2>
-<p>Prevalence can interact covariates — here <code>rating</code> with
-time — and the effect plot can condition on a moderator value:</p>
+<p>Prevalence can interact covariates (here <code>rating</code> with
+time), and the effect plot can condition on a moderator value:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">poliblogInteraction</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stm.html">stm</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">documents</span>, <span class="va">out</span><span class="op">$</span><span class="va">vocab</span>, K <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>                           prevalence <span class="op">=</span> <span class="op">~</span> <span class="va">rating</span> <span class="op">*</span> <span class="va">day</span>, data <span class="op">=</span> <span class="va">out</span><span class="op">$</span><span class="va">meta</span>,</span>
@@ -259,10 +274,11 @@ fixed:</p>
 <span><span class="co">#&gt; [1] 5000   20</span></span></code></pre></div>
 <hr>
 <p>Everything above is the <code>stm</code> vignette’s workflow, run on
-faSTM: the same function names and arguments, the same corpus, the same
-kinds of plots — fit in seconds and with an honest
-<code>estimateEffect</code>. Existing <code>stm</code> scripts port with
-little more than the changes shown here.</p>
+faSTM: the same function names and arguments, the same corpus, and
+faSTM’s restyled, re-defaulted plots (see the note up top). It fits in
+seconds, with an <code>estimateEffect</code> that propagates topic
+uncertainty. Existing <code>stm</code> scripts port with little more
+than the changes shown here.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

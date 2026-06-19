@@ -6,3 +6,5 @@
   faSTM](https://nealcaren.github.io/faSTM/articles/faSTM.md):
 - [Beyond stm: faSTM's
   extensions](https://nealcaren.github.io/faSTM/articles/beyond-stm.md):
+- [Validation: parity with stm, and fit
+  quality](https://nealcaren.github.io/faSTM/articles/validation.md):

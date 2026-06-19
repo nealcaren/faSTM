@@ -2,12 +2,24 @@
 
 This vignette walks through the **same analysis as the `stm` package
 vignette** (Roberts, Stewart & Tingley), using the identical CMU 2008
-political-blog corpus — but every model is **fit live** here, because
+political-blog corpus, but every model is **fit live** here, because
 faSTM fits in seconds where `stm` takes minutes. (The `stm` vignette
 loads pre-computed objects to avoid the wait; faSTM does not need to.)
 The code mirrors the `stm` vignette’s calls. Because each fit is fresh,
-the *topic numbers* differ from the original — the workflow, not the
+the *topic numbers* differ from the original. The workflow, not the
 specific topics, is what carries over.
+
+> **A note on the plots.** faSTM’s
+> [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods are
+> restyled (ggplot), *re-defaulted* versions of stm’s, not
+> pixel-for-pixel copies. Two differences worth knowing.
+> `plot(type = "summary")` ranks words by **FREX** (stm defaults to
+> highest-probability, so pass `labeltype = "prob"` for stm-style
+> labels). And `plotModels()` draws stm’s full **per-topic cloud**
+> (faint, one point per topic coloured by model) *and* overlays **bold
+> model-mean points** with the non-dominated models highlighted on a
+> “quality frontier”, so you see both the spread and the summary at
+> once.
 
 ``` r
 
@@ -43,7 +55,7 @@ out <- list(documents = poliblog$documents, vocab = poliblog$vocab, meta = polib
 
 ## Estimating the structural topic model
 
-The headline call mirrors the `stm` vignette exactly — topic prevalence
+The headline call mirrors the `stm` vignette exactly. Topic prevalence
 varies with `rating` and a smooth function of `day`:
 
 ``` r
@@ -72,7 +84,7 @@ plotModels(poliblogSelect)
 ![](faSTM_files/figure-html/select-1.png)
 
 `searchK()` sweeps the number of topics, reporting held-out likelihood,
-semantic coherence and exclusivity — and parallelizes across K:
+semantic coherence, and exclusivity. It also parallelizes across K:
 
 ``` r
 
@@ -111,8 +123,9 @@ Representative documents per topic, displayed as wrapped quotes:
 
 ``` r
 
-thoughts3 <- findThoughts(poliblogPrevFit, texts = out$meta$text, n = 2, topics = 3)$docs[[1]]
-plotQuote(substr(thoughts3, 1, 200), width = 50, main = "Topic 3")
+# bundled poliblog text is short (~50-char) snippets, so a few fill the panel
+thoughts3 <- findThoughts(poliblogPrevFit, texts = out$meta$text, n = 4, topics = 3)$docs[[1]]
+plotQuote(substr(thoughts3, 1, 200), width = 60, main = "Topic 3")
 ```
 
 ![](faSTM_files/figure-html/thoughts-1.png)
@@ -130,7 +143,7 @@ plot(poliblogPrevFit, type = "summary")
 
 [`estimateEffect()`](https://nealcaren.github.io/faSTM/reference/estimateEffect.md)
 regresses topic proportions on the covariates, propagating
-topic-estimation uncertainty (the honest method of composition):
+topic-estimation uncertainty (the method of composition):
 
 ``` r
 
@@ -199,7 +212,7 @@ plot(poliblogPrevFit, type = "perspectives", topics = c(12, 20))
 
 ## Interactions
 
-Prevalence can interact covariates — here `rating` with time — and the
+Prevalence can interact covariates (here `rating` with time), and the
 effect plot can condition on a moderator value:
 
 ``` r
@@ -256,6 +269,7 @@ dim(theta_new)
 ------------------------------------------------------------------------
 
 Everything above is the `stm` vignette’s workflow, run on faSTM: the
-same function names and arguments, the same corpus, the same kinds of
-plots — fit in seconds and with an honest `estimateEffect`. Existing
+same function names and arguments, the same corpus, and faSTM’s
+restyled, re-defaulted plots (see the note up top). It fits in seconds,
+with an `estimateEffect` that propagates topic uncertainty. Existing
 `stm` scripts port with little more than the changes shown here.

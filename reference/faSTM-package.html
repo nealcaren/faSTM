@@ -5,13 +5,15 @@ compatible with the stm package. Text preparation
 (stm::textProcessor(), stm::prepDocuments()) and post-fit tools
 (stm::labelTopics(), stm::plot.STM(), stm::findThoughts(),
 stm::sageLabels(), stm::toLDAvis()) are reused from stm unchanged;
-faSTM contributes the fast fit (stm()) and an honest estimateEffect()."><meta property="og:description" content="faSTM fits the logistic-normal structural topic model (prevalence + content
+faSTM contributes the fast fit (stm()) and an uncertainty-propagating
+estimateEffect()."><meta property="og:description" content="faSTM fits the logistic-normal structural topic model (prevalence + content
 covariates) using the Rust core from topica, and returns an object
 compatible with the stm package. Text preparation
 (stm::textProcessor(), stm::prepDocuments()) and post-fit tools
 (stm::labelTopics(), stm::plot.STM(), stm::findThoughts(),
 stm::sageLabels(), stm::toLDAvis()) are reused from stm unchanged;
-faSTM contributes the fast fit (stm()) and an honest estimateEffect()."></head><body>
+faSTM contributes the fast fit (stm()) and an uncertainty-propagating
+estimateEffect()."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -31,6 +33,7 @@ faSTM contributes the fast fit (stm()) and an honest estimateEffect()."></head><
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/beyond-stm.html">Beyond stm: faSTM's extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validation: parity with stm, and fit quality</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -57,7 +60,8 @@ compatible with the <code>stm</code> package. Text preparation
 (<code><a href="https://rdrr.io/pkg/stm/man/textProcessor.html" class="external-link">stm::textProcessor()</a></code>, <code><a href="https://rdrr.io/pkg/stm/man/prepDocuments.html" class="external-link">stm::prepDocuments()</a></code>) and post-fit tools
 (<code><a href="https://rdrr.io/pkg/stm/man/labelTopics.html" class="external-link">stm::labelTopics()</a></code>, <code><a href="https://rdrr.io/pkg/stm/man/plot.STM.html" class="external-link">stm::plot.STM()</a></code>, <code><a href="https://rdrr.io/pkg/stm/man/findThoughts.html" class="external-link">stm::findThoughts()</a></code>,
 <code><a href="https://rdrr.io/pkg/stm/man/sageLabels.html" class="external-link">stm::sageLabels()</a></code>, <code><a href="https://rdrr.io/pkg/stm/man/toLDAvis.html" class="external-link">stm::toLDAvis()</a></code>) are reused from <code>stm</code> unchanged;
-faSTM contributes the fast fit (<code><a href="stm.html">stm()</a></code>) and an honest <code><a href="estimateEffect.html">estimateEffect()</a></code>.</p>
+faSTM contributes the fast fit (<code><a href="stm.html">stm()</a></code>) and an uncertainty-propagating
+<code><a href="estimateEffect.html">estimateEffect()</a></code>.</p>
     </div>
 
 

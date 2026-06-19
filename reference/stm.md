@@ -12,7 +12,8 @@ with the `stm` package so that
 [`stm::toLDAvis()`](https://rdrr.io/pkg/stm/man/toLDAvis.html) work
 unmodified. Use
 [`estimateEffect()`](https://nealcaren.github.io/faSTM/reference/estimateEffect.md)
-from this package for the honest covariate effects.
+from this package for covariate effects that propagate topic-estimation
+uncertainty.
 
 ## Usage
 

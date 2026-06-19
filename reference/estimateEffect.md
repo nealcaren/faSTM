@@ -2,11 +2,10 @@
 
 A drop-in for
 [`stm::estimateEffect()`](https://rdrr.io/pkg/stm/man/estimateEffect.html)
-that propagates per-document topic-estimation uncertainty honestly: it
-regresses each posterior draw of topic proportions on the covariates and
-pools the per-draw fits by Rubin's rules. This is topica's "honest"
-effect estimator, the reason faSTM ships its own rather than inheriting
-stm's.
+that propagates per-document topic-estimation uncertainty: it regresses
+each posterior draw of topic proportions on the covariates and pools the
+per-draw fits by Rubin's rules. Propagating that uncertainty is the
+reason faSTM ships its own estimator rather than inheriting stm's.
 
 ## Usage
 

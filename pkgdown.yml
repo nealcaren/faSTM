@@ -4,7 +4,8 @@ pkgdown_sha: ~
 articles:
   beyond-stm: beyond-stm.html
   faSTM: faSTM.html
-last_built: 2026-06-19T15:58Z
+  validation: validation.html
+last_built: 2026-06-19T18:10Z
 urls:
   reference: https://nealcaren.github.io/faSTM/reference
   article: https://nealcaren.github.io/faSTM/articles

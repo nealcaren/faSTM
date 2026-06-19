@@ -34,6 +34,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/beyond-stm.html">Beyond stm: faSTM's extensions</a></li>
+    <li><a class="dropdown-item" href="../articles/validation.html">Validation: parity with stm, and fit quality</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -69,17 +70,17 @@
 <p>The <a href="faSTM.html">companion vignette</a> shows that faSTM runs
 the <em>same</em> analysis as the <code>stm</code> package. This one
 covers what faSTM adds <strong>on top of</strong> that framework:
-multiple content covariates, a richer and more honest
-<code><a href="../reference/estimateEffect.html">estimateEffect()</a></code>, alternative coherence metrics, and a
+multiple content covariates, an <code><a href="../reference/estimateEffect.html">estimateEffect()</a></code> with
+weights and clustering, alternative coherence metrics, and a
 tidyverse-friendly surface. None of these require leaving the
-<code>stm</code>-compatible object — they are extra tools, not a
+<code>stm</code>-compatible object; they are extra tools, not a
 different model.</p>
 <p>We use a second bundled corpus, <code>congress</code>: a balanced
 sample of <strong>1,679 U.S. House and Senate floor speeches</strong>,
 Congresses 100–111 (1987–2011), with metadata <code>party</code>
 (Democrat/Republican), <code>chamber</code> (House/Senate), and
 <code>congress</code> (the time index). It is built for exactly this
-vignette — two categorical covariates that cross, plus a time axis.</p>
+vignette: two categorical covariates that cross, plus a time axis.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nealcaren.github.io/faSTM/">faSTM</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">congress</span><span class="op">)</span></span>
@@ -90,8 +91,8 @@ vignette — two categorical covariates that cross, plus a time axis.</p>
 <span><span class="co">#&gt;              House Senate</span></span>
 <span><span class="co">#&gt;   Democrat     420    420</span></span>
 <span><span class="co">#&gt;   Republican   419    420</span></span></code></pre></div>
-<p>We fit one prevalence model — topic prevalence as a function of
-<strong>party</strong> and a smooth of <strong>time</strong> — and reuse
+<p>We fit one prevalence model (topic prevalence as a function of
+<strong>party</strong> and a smooth of <strong>time</strong>) and reuse
 it throughout.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stm.html">stm</a></span><span class="op">(</span><span class="va">congress</span>, K <span class="op">=</span> <span class="fl">12</span>, prevalence <span class="op">=</span> <span class="op">~</span> <span class="va">party</span> <span class="op">+</span> <span class="fu"><a href="../reference/s.html">s</a></span><span class="op">(</span><span class="va">congress</span><span class="op">)</span>,</span>
@@ -101,7 +102,7 @@ it throughout.</p>
 </h2>
 <p><code>stm</code> allows a single content (SAGE) covariate. faSTM
 accepts several and crosses them into a <strong>saturated</strong>
-content model — one topic-word distribution per combination of levels.
+content model: one topic-word distribution per combination of levels.
 Here <code>party</code> (2) × <code>chamber</code> (2) gives a 4-group
 content model, so we can read how <em>Democrats vs Republicans</em> and
 <em>House vs Senate</em> word each topic differently:</p>
@@ -126,7 +127,7 @@ later.</p>
 </h3>
 <p>Content covariates are where the interesting partisan signal lives.
 Above, <code>estimateEffect</code> will show that Democrats and
-Republicans devote <em>similar prevalence</em> to the budget/tax topic —
+Republicans devote <em>similar prevalence</em> to the budget/tax topic,
 but they <strong>word it very differently</strong>. A
 <code>~ party</code> content model makes that concrete:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -147,19 +148,19 @@ but they <strong>word it very differently</strong>. A
 <span><span class="co">#&gt;  [7] "computers" "taxed"     "extra"     "authority"</span></span></code></pre></div>
 <p>The shared vocabulary is fiscal (tax, budget, spending), but
 Democrats reach for <em>health, care, children, preexisting, denied</em>
-while Republicans reach for <em>taxing, taxed, CBO, authority</em> —
-same topic, opposite framing. This is the distinction prevalence
-covariates can’t capture and content (SAGE) covariates can.</p>
+while Republicans reach for <em>taxing, taxed, CBO, authority</em>: same
+topic, opposite framing. This is the distinction prevalence covariates
+can’t capture and content (SAGE) covariates can.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="honest-estimateeffect-cluster-robust-ses-and-weights">Honest <code>estimateEffect()</code>: cluster-robust SEs and
-weights<a class="anchor" aria-label="anchor" href="#honest-estimateeffect-cluster-robust-ses-and-weights"></a>
+<h2 id="estimateeffect-cluster-robust-ses-and-weights">
+<code>estimateEffect()</code>: cluster-robust SEs and weights<a class="anchor" aria-label="anchor" href="#estimateeffect-cluster-robust-ses-and-weights"></a>
 </h2>
 <p>faSTM keeps <code>stm</code>’s method-of-composition uncertainty
 (re-drawing topic proportions per simulation) and adds design features
 grouped data usually needs.</p>
-<p><strong>Cluster-robust standard errors</strong> — speeches within a
+<p><strong>Cluster-robust standard errors.</strong> Speeches within a
 Congress are not independent, so we cluster by <code>congress</code>.
 faSTM swaps the classical vcov for a sandwich estimator with
 <code>stm</code>’s finite-sample correction:</p>
@@ -207,9 +208,9 @@ groups:</p>
 <h2 id="average-marginal-effects">Average marginal effects<a class="anchor" aria-label="anchor" href="#average-marginal-effects"></a>
 </h2>
 <p>Coefficients on splines and factors are hard to read.
-<code><a href="../reference/ame.html">ame()</a></code> reports the <strong>average marginal effect</strong>
-— the mean change in topic proportion for a Republican-vs-Democrat
-shift, averaged over the sample:</p>
+<code><a href="../reference/ame.html">ame()</a></code> reports the <strong>average marginal effect</strong>:
+the mean change in topic proportion for a Republican-vs-Democrat shift,
+averaged over the sample:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/ame.html">ame</a></span><span class="op">(</span><span class="va">eff</span>, covariate <span class="op">=</span> <span class="st">"party"</span>, topics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">7</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   topic            term          ame          se        lower      upper</span></span>
@@ -230,9 +231,9 @@ topic’s share across the 1987–2011 window:</p>
 <div class="section level2">
 <h2 id="coherence-npmi-and-c_v">Coherence: NPMI and C_V<a class="anchor" aria-label="anchor" href="#coherence-npmi-and-c_v"></a>
 </h2>
-<p>Alongside Mimno’s semantic coherence, faSTM offers the two coherence
-metrics most used in the modern topic-model literature —
-<strong>NPMI</strong> and <strong>C_V</strong>:</p>
+<p>Alongside Mimno’s semantic coherence, faSTM offers two more coherence
+metrics common in the topic-model literature: <strong>NPMI</strong> and
+<strong>C_V</strong>:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  topic <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>,</span>

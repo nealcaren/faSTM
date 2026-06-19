@@ -13,7 +13,7 @@ and post-fit tools
 [`stm::toLDAvis()`](https://rdrr.io/pkg/stm/man/toLDAvis.html)) are
 reused from `stm` unchanged; faSTM contributes the fast fit
 ([`stm()`](https://nealcaren.github.io/faSTM/reference/stm.md)) and an
-honest
+uncertainty-propagating
 [`estimateEffect()`](https://nealcaren.github.io/faSTM/reference/estimateEffect.md).
 
 ## See also
