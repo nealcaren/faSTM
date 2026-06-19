@@ -7,6 +7,15 @@ skip_if_not_built <- function() {
   if (!ok) skip("faSTM Rust backend not built")
 }
 
+test_that("documents->DTM build is linear (guards the O(n^2) regression)", {
+  skip_on_cran()
+  mk <- function(n) lapply(seq_len(n), function(i)
+    matrix(c(sample.int(80L, 8L), rep(2L, 8L)), nrow = 2L, byrow = TRUE))
+  # 8000 docs: the old c()-in-a-loop build took seconds; the linear build is ~instant.
+  t <- system.time(faSTM:::.documents_to_dtm(mk(8000L), 80L))[["elapsed"]]
+  expect_lt(t, 2)   # quadratic would be many seconds even on a slow runner
+})
+
 make_fit <- function(K = 6L) {
   dfmat <- quanteda::dfm(quanteda::tokens(quanteda::data_corpus_inaugural,
                                           remove_punct = TRUE))

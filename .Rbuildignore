@@ -6,3 +6,4 @@
 ^DESIGN\.md$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^benchmarks$
