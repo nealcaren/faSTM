@@ -68,6 +68,30 @@ labelTopics(fitC, topics = 3)
 The crossed levels are stored on the fit (`settings$covariates$contentvars`,
 `contenttable`) so per-covariate marginals can be recovered later.
 
+### Framing, not agenda
+
+Content covariates are where the interesting partisan signal lives. Above,
+`estimateEffect` will show that Democrats and Republicans devote *similar
+prevalence* to the budget/tax topic — but they **word it very differently**. A
+`~ party` content model makes that concrete:
+
+```{r framing}
+fitParty <- stm(congress, K = 12, prevalence = ~ party + s(congress),
+                content = ~ party, verbose = FALSE)
+sl  <- sageLabels(fitParty, n = 10)
+tax <- which(apply(sl$marginal, 1, function(w) any(grepl("^tax", w))))[1]
+
+sl$marginal[tax, ]              # shared topic vocabulary
+sl$bygroup$Democrat[tax, ]     # how Democrats word it
+sl$bygroup$Republican[tax, ]   # how Republicans word it
+```
+
+The shared vocabulary is fiscal (tax, budget, spending), but Democrats reach for
+*health, care, children, preexisting, denied* while Republicans reach for
+*taxing, taxed, CBO, authority* — same topic, opposite framing. This is the
+distinction prevalence covariates can't capture and content (SAGE) covariates
+can.
+
 ## Honest `estimateEffect()`: cluster-robust SEs and weights
 
 faSTM keeps `stm`'s method-of-composition uncertainty (re-drawing topic
