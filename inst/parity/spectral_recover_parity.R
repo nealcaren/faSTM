@@ -3,13 +3,20 @@
 # fast_anchor_words + recover, via fit_ctm with 0 EM iterations) vs R stm's
 # recoverL2(). Reports the aligned topic-word cosine.
 #
-# STATUS (topica v0.24.1): faSTM's full spectral init reproduces stm's spectral
+# STATUS (topica v0.32.0): faSTM's full spectral init reproduces stm's spectral
 # recovery EXACTLY — per-topic cosine 1.0, same topics, same order — given the
 # same prepped corpus. The comparison must target stm's CONVERGED recovery
 # (recoverL2(recoverEG = FALSE), the QP optimum). stm's *default* recoverEG = TRUE
 # is a non-converging exponentiated-gradient approximation (fixed step), so a naive
 # comparison against it reads ~0.44 — an artifact of stm's default, not a real gap.
 # topica's recover() converges to the same QP optimum (see topica#240, resolved).
+#
+# The recovery weighting (`wprob`) is stm's pooled unigram frequency
+# colSums(mat)/sum(mat) — the Arora p_w — NOT the gram row sums rowSums(Q). topica
+# matched this exactly as of topica#265 (v0.32.0 pin); earlier pins weighted by the
+# gram row sums and this reference used them too, so its "1.0" was self-consistent
+# against a non-stm wprob. With the colSums/sum weighting both sides target stm's
+# real default.
 #
 #   Rscript spectral_recover_parity.R   # prints "aligned cosine = <x>"
 
@@ -28,9 +35,13 @@ for (i in seq_along(docs)) { m <- docs[[i]]
 mat <- sparseMatrix(i = rows, j = cols, x = vals, dims = c(length(docs), V))
 Q <- stm:::gram(mat); Qsums <- rowSums(Q); Qbar_stm <- Q / Qsums
 anchors_stm <- stm:::fastAnchor(Qbar_stm, K, verbose = FALSE)
+# wprob = stm's pooled unigram frequency (colSums(mat)/sum(mat), the Arora p_w),
+# matching topica#265. NOT the gram row sums Qsums/sum(Qsums), which differ when
+# document lengths vary (Qsums normalizes Q̄, a separate role).
+wprob <- colSums(mat) / sum(mat)
 # recoverEG = FALSE: the converged QP optimum. stm's default (TRUE) is a
 # non-converging exponentiated gradient and is NOT the recovery target.
-beta_stm <- stm:::recoverL2(Qbar_stm, anchors_stm, Qsums / sum(Qsums),
+beta_stm <- stm:::recoverL2(Qbar_stm, anchors_stm, wprob,
                            verbose = FALSE, recoverEG = FALSE)$A
 
 ## --- faSTM ACTUAL spectral init: spectral default, 0 EM iters (raw beta) ---
