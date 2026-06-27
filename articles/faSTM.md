@@ -103,20 +103,20 @@ Top words by probability, FREX, lift and score:
 
 labelTopics(poliblogPrevFit, c(3, 7, 20))
 #> Topic 3:
-#>   Highest Prob: think, like, peopl, know, say, just, thing 
-#>   FREX:         thing, think, linktocommentspostcount, postcounttb, guy, realli, someth 
-#>   Lift:         digbyi, dday, digbi, linktocommentspostcount, postcounttb, bunch, guy 
-#>   Score:        linktocommentspostcount, postcounttb, think, guy, know, thing, peopl 
+#>   Highest Prob: think, peopl, like, know, say, just, thing 
+#>   FREX:         thing, linktocommentspostcount, postcounttb, guy, think, realli, someth 
+#>   Lift:         digbyi, digbi, dday, linktocommentspostcount, postcounttb, bunch, nobodi 
+#>   Score:        linktocommentspostcount, postcounttb, think, guy, know, thing, digbi 
 #> Topic 7:
-#>   Highest Prob: race, senat, gop, rep, new, campaign, dem 
-#>   FREX:         franken, rep, coleman, smith, minnesota, seat, dem 
-#>   Lift:         franken, coleman, minnesota, smith, mitch, mcconnel, norm 
-#>   Score:        franken, dem, gop, rep, coleman, race, seat 
+#>   Highest Prob: race, senat, campaign, rep, new, gop, dem 
+#>   FREX:         franken, coleman, rep, smith, minnesota, dem, race 
+#>   Lift:         franken, coleman, minnesota, smith, mitch, norm, mcconnel 
+#>   Score:        franken, coleman, dem, ballot, race, gop, rep 
 #> Topic 20:
-#>   Highest Prob: will, convent, deleg, clinton, support, pledg, expect 
-#>   FREX:         deleg, convent, pledg, denver, tuesday, nomin, superdeleg 
-#>   Lift:         denver, pledg, deleg, convent, superdeleg, super, tuesday 
-#>   Score:        deleg, convent, clinton, will, pledg, denver, nomin
+#>   Highest Prob: will, convent, pledg, deleg, tuesday, possibl, nation 
+#>   FREX:         pledg, tuesday, deleg, convent, neither, possibl, total 
+#>   Lift:         pledg, tuesday, super, clarifi, award, deleg, counter 
+#>   Score:        deleg, pledg, convent, will, clinton, tuesday, super
 ```
 
 Representative documents per topic, displayed as wrapped quotes:
@@ -152,18 +152,18 @@ prep <- estimateEffect(1:20 ~ rating + s(day), poliblogPrevFit,
                        meta = out$meta, uncertainty = "Global")
 summary(prep, topics = 1)$tables[[1]]
 #>                   Estimate  Std. Error    t value     Pr(>|t|)
-#> (Intercept)    0.003861990 0.011216067  0.3443266 7.306152e-01
-#> ratingLiberal  0.019276001 0.002668439  7.2237005 5.823441e-13
-#> s(day)1        0.068367873 0.022172678  3.0834287 2.057486e-03
-#> s(day)2        0.038471598 0.013195646  2.9154767 3.567273e-03
-#> s(day)3        0.009797603 0.016093826  0.6087802 5.426978e-01
-#> s(day)4        0.054869461 0.013214713  4.1521492 3.348652e-05
-#> s(day)5        0.046318512 0.014346884  3.2284718 1.252593e-03
-#> s(day)6       -0.007311747 0.013476734 -0.5425459 5.874667e-01
-#> s(day)7        0.030218144 0.014067854  2.1480280 3.175955e-02
-#> s(day)8        0.008851424 0.016402942  0.5396242 5.894803e-01
-#> s(day)9        0.057364841 0.017435673  3.2900847 1.008527e-03
-#> s(day)10       0.013539769 0.016568575  0.8171957 4.138556e-01
+#> (Intercept)    0.003110247 0.011273929  0.2758796 7.826520e-01
+#> ratingLiberal  0.019163938 0.002681926  7.1455876 1.025466e-12
+#> s(day)1        0.070682672 0.022324691  3.1661209 1.554173e-03
+#> s(day)2        0.040550331 0.013253774  3.0595309 2.228615e-03
+#> s(day)3        0.008164232 0.016191905  0.5042169 6.141312e-01
+#> s(day)4        0.056183044 0.013280035  4.2306397 2.372066e-05
+#> s(day)5        0.046183409 0.014444773  3.1972402 1.396160e-03
+#> s(day)6       -0.006539875 0.013587211 -0.4813258 6.303061e-01
+#> s(day)7        0.032304028 0.014188997  2.2766956 2.284658e-02
+#> s(day)8        0.007149116 0.016549919  0.4319729 6.657798e-01
+#> s(day)9        0.057596195 0.017602506  3.2720453 1.074990e-03
+#> s(day)10       0.007694539 0.016629381  0.4627075 6.435942e-01
 ```
 
 Difference in topic prevalence between Liberal and Conservative blogs:

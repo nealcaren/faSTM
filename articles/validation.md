@@ -62,7 +62,7 @@ excl_diff <- max(abs(faSTM::exclusivity(fit, M = 10) -
                      stm::exclusivity(fit, M = 10)))
 c(max_coherence_diff = coh_diff, max_exclusivity_diff = excl_diff)
 #>   max_coherence_diff max_exclusivity_diff 
-#>         4.263256e-14         0.000000e+00
+#>         2.842171e-14         0.000000e+00
 stopifnot(coh_diff < 1e-8, excl_diff < 1e-8)
 ```
 
@@ -96,7 +96,7 @@ data.frame(
   heldout_LL = round(c(ll_faSTM, ll_stm), 4),
   iterations = c(ff$convergence$its, length(sf$convergence$bound)))
 #>   engine heldout_LL iterations
-#> 1  faSTM    -6.9030         43
+#> 1  faSTM    -6.9043         34
 #> 2    stm    -6.8976         23
 ```
 
@@ -104,7 +104,7 @@ data.frame(
 
 rel_gap <- abs(ll_faSTM - ll_stm) / abs(ll_stm)
 round(100 * rel_gap, 3)               # percent difference in held-out likelihood
-#> [1] 0.078
+#> [1] 0.098
 stopifnot(rel_gap < 0.02)             # within 2%
 ```
 

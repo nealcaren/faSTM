@@ -85,14 +85,14 @@ tax <- which(apply(sl$marginal, 1, function(w) any(grepl("^tax", w))))[1]
 
 sl$marginal[tax, ]              # shared topic vocabulary
 #>  [1] "tax"        "budget"     "families"   "billion"    "health"    
-#>  [6] "government" "pay"        "care"       "spending"   "jobs"
+#>  [6] "government" "pay"        "care"       "spending"   "taxes"
 sl$bygroup$Democrat[tax, ]     # how Democrats word it
-#>  [1] "health"         "sick"           "care"           "insurance"     
-#>  [5] "profits"        "reconciliation" "children"       "foster"        
-#>  [9] "birth"          "denied"
+#>  [1] "sick"           "health"         "profits"        "care"          
+#>  [5] "reconciliation" "foster"         "preexisting"    "pregnancy"     
+#>  [9] "children"       "denied"
 sl$bygroup$Republican[tax, ]   # how Republicans word it
-#>  [1] "taxing"    "harbor"    "blame"     "green"     "error"     "criticize"
-#>  [7] "computers" "taxed"     "extra"     "authority"
+#>  [1] "taxing"    "harbor"    "blame"     "taxed"     "error"     "green"    
+#>  [7] "criticize" "internet"  "computers" "extra"
 ```
 
 The shared vocabulary is fiscal (tax, budget, spending), but Democrats
@@ -121,19 +121,19 @@ summary(eff, topics = 3)
 #> 
 #> topic3:
 #>                 Estimate Std. Error t value Pr(>|t|)
-#> (Intercept)       0.0907     0.0045 20.0289   0.0000
-#> partyRepublican   0.0046     0.0067  0.6816   0.4956
-#> s(congress)1     -0.1038     0.0334 -3.1050   0.0019
-#> s(congress)2      0.0663     0.0219  3.0286   0.0025
-#> s(congress)3     -0.0224     0.0154 -1.4547   0.1460
-#> s(congress)4      0.0326     0.0178  1.8359   0.0665
-#> s(congress)5     -0.0065     0.0156 -0.4167   0.6769
-#> s(congress)6      0.0203     0.0122  1.6706   0.0950
-#> s(congress)7      0.0153     0.0139  1.1027   0.2703
-#> s(congress)8      0.0297     0.0218  1.3633   0.1730
-#> s(congress)9      0.0282     0.0257  1.0992   0.2719
-#> s(congress)10    -0.0106     0.0052 -2.0476   0.0408
-#>   R-squared: 0.005 | F(11,1667): 0.79
+#> (Intercept)       0.0951     0.0047 20.0328   0.0000
+#> partyRepublican   0.0028     0.0070  0.3964   0.6919
+#> s(congress)1     -0.1217     0.0333 -3.6538   0.0003
+#> s(congress)2      0.0822     0.0211  3.8978   0.0001
+#> s(congress)3     -0.0332     0.0144 -2.3109   0.0210
+#> s(congress)4      0.0314     0.0164  1.9192   0.0551
+#> s(congress)5     -0.0156     0.0139 -1.1232   0.2615
+#> s(congress)6      0.0193     0.0111  1.7326   0.0834
+#> s(congress)7      0.0100     0.0127  0.7858   0.4321
+#> s(congress)8      0.0302     0.0206  1.4685   0.1422
+#> s(congress)9      0.0139     0.0237  0.5847   0.5588
+#> s(congress)10    -0.0176     0.0054 -3.2775   0.0011
+#>   R-squared: 0.005 | F(11,1667): 0.81
 ```
 
 [`summary()`](https://rdrr.io/r/base/summary.html) also takes
@@ -164,10 +164,10 @@ a Republican-vs-Democrat shift, averaged over the sample:
 ``` r
 
 ame(eff, covariate = "party", topics = c(1, 3, 7))
-#>   topic            term          ame          se        lower      upper
-#> 1     1 partyRepublican  0.006103871 0.005660509 -0.004998583 0.01720633
-#> 2     3 partyRepublican  0.004572807 0.006708445 -0.008585058 0.01773067
-#> 3     7 partyRepublican -0.002083247 0.006906677 -0.015629921 0.01146343
+#>   topic            term          ame          se       lower      upper
+#> 1     1 partyRepublican  0.005506650 0.005370920 -0.00502781 0.01604111
+#> 2     3 partyRepublican  0.002789467 0.007036878 -0.01101258 0.01659152
+#> 3     7 partyRepublican -0.001322081 0.006370965 -0.01381802 0.01117385
 ```
 
 ## Topic prevalence over time
@@ -197,11 +197,11 @@ data.frame(
   c_v   = round(coherence(fit, measure = "c_v",   M = 10)[1:5], 3)
 )
 #>   topic  mimno  npmi   c_v
-#> 1     1 -84.61 0.104 0.559
-#> 2     2 -80.32 0.139 0.620
-#> 3     3 -51.80 0.135 0.640
-#> 4     4 -65.44 0.183 0.701
-#> 5     5 -85.67 0.153 0.663
+#> 1     1 -69.34 0.101 0.553
+#> 2     2 -73.12 0.142 0.634
+#> 3     3 -51.61 0.135 0.640
+#> 4     4 -68.07 0.140 0.642
+#> 5     5 -89.67 0.153 0.663
 ```
 
 [`search_k()`](https://nealcaren.github.io/faSTM/reference/search_k.md)
@@ -223,23 +223,23 @@ faSTM ships `broom` generics, so model output flows straight into
 # tidy the topic-word matrix (also matrix = "frex" or "gamma")
 head(tidy(fit, matrix = "beta"), 4)
 #>   topic   term         beta
-#> 1     1  words 5.162615e-04
-#> 2     1 daniel 5.855844e-13
-#> 3     1 served 3.306205e-04
-#> 4     1  armed 1.130633e-12
+#> 1     1  words 5.127769e-04
+#> 2     1 daniel 5.698705e-13
+#> 3     1 served 3.525644e-04
+#> 4     1  armed 2.465336e-12
 
 # one-row model summary
 glance(fit)
 #>    k docs terms content_groups iterations converged
-#> 1 12 1679  4110              1         68      TRUE
+#> 1 12 1679  4110              1         70      TRUE
 
 # tidy an estimated effect into a coefficient table
 head(tidy(eff), 4)
-#>    topic            term     estimate   std.error statistic      p.value
-#> 1 topic1     (Intercept)  0.067557112 0.004297543 15.719937 4.970589e-52
-#> 2 topic1 partyRepublican  0.006103871 0.005660509  1.078326 2.810445e-01
-#> 3 topic1    s(congress)1 -0.059664679 0.024336967 -2.451607 1.432398e-02
-#> 4 topic1    s(congress)2  0.060010549 0.017085541  3.512359 4.559887e-04
+#>    topic            term    estimate   std.error statistic      p.value
+#> 1 topic1     (Intercept)  0.07235789 0.004353876 16.619190 1.649890e-57
+#> 2 topic1 partyRepublican  0.00550665 0.005370920  1.025271 3.053840e-01
+#> 3 topic1    s(congress)1 -0.06616952 0.025091558 -2.637123 8.438957e-03
+#> 4 topic1    s(congress)2  0.06182077 0.018241878  3.388948 7.179648e-04
 ```
 
 [`predict()`](https://rdrr.io/r/stats/predict.html) infers topic

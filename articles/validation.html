@@ -122,7 +122,7 @@ Identical inputs should give identical outputs.</p>
 <span>                     <span class="fu">stm</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/stm/man/exclusivity.html" class="external-link">exclusivity</a></span><span class="op">(</span><span class="va">fit</span>, M <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>max_coherence_diff <span class="op">=</span> <span class="va">coh_diff</span>, max_exclusivity_diff <span class="op">=</span> <span class="va">excl_diff</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   max_coherence_diff max_exclusivity_diff </span></span>
-<span><span class="co">#&gt;         4.263256e-14         0.000000e+00</span></span>
+<span><span class="co">#&gt;         2.842171e-14         0.000000e+00</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="va">coh_diff</span> <span class="op">&lt;</span> <span class="fl">1e-8</span>, <span class="va">excl_diff</span> <span class="op">&lt;</span> <span class="fl">1e-8</span><span class="op">)</span></span></code></pre></div>
 <p>Both agree to floating-point precision: faSTM’s
 <code>inspect.R</code> ports <code>stm</code>’s <code>semCoh1beta</code>
@@ -155,12 +155,12 @@ same held-out set through both packages.</p>
 <span>  heldout_LL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">ll_faSTM</span>, <span class="va">ll_stm</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span>,</span>
 <span>  iterations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">ff</span><span class="op">$</span><span class="va">convergence</span><span class="op">$</span><span class="va">its</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sf</span><span class="op">$</span><span class="va">convergence</span><span class="op">$</span><span class="va">bound</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   engine heldout_LL iterations</span></span>
-<span><span class="co">#&gt; 1  faSTM    -6.9030         43</span></span>
+<span><span class="co">#&gt; 1  faSTM    -6.9043         34</span></span>
 <span><span class="co">#&gt; 2    stm    -6.8976         23</span></span></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rel_gap</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">ll_faSTM</span> <span class="op">-</span> <span class="va">ll_stm</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">ll_stm</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="va">rel_gap</span>, <span class="fl">3</span><span class="op">)</span>               <span class="co"># percent difference in held-out likelihood</span></span>
-<span><span class="co">#&gt; [1] 0.078</span></span>
+<span><span class="co">#&gt; [1] 0.098</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="va">rel_gap</span> <span class="op">&lt;</span> <span class="fl">0.02</span><span class="op">)</span>             <span class="co"># within 2%</span></span></code></pre></div>
 <p>The two fits land within a fraction of a percent on held-out
 likelihood, so the optima are of comparable quality. faSTM reaches it in

@@ -48,7 +48,7 @@ topic_lasso(
 - ...:
 
   Passed to
-  [`glmnet::cv.glmnet()`](https://glmnet.stanford.edu/reference/cv.glmnet.html).
+  [`glmnet::cv.glmnet()`](https://rdrr.io/pkg/glmnet/man/cv.glmnet.html).
 
 ## Value
 

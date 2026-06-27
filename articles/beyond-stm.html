@@ -138,14 +138,14 @@ but they <strong>word it very differently</strong>. A
 <span></span>
 <span><span class="va">sl</span><span class="op">$</span><span class="va">marginal</span><span class="op">[</span><span class="va">tax</span>, <span class="op">]</span>              <span class="co"># shared topic vocabulary</span></span>
 <span><span class="co">#&gt;  [1] "tax"        "budget"     "families"   "billion"    "health"    </span></span>
-<span><span class="co">#&gt;  [6] "government" "pay"        "care"       "spending"   "jobs"</span></span>
+<span><span class="co">#&gt;  [6] "government" "pay"        "care"       "spending"   "taxes"</span></span>
 <span><span class="va">sl</span><span class="op">$</span><span class="va">bygroup</span><span class="op">$</span><span class="va">Democrat</span><span class="op">[</span><span class="va">tax</span>, <span class="op">]</span>     <span class="co"># how Democrats word it</span></span>
-<span><span class="co">#&gt;  [1] "health"         "sick"           "care"           "insurance"     </span></span>
-<span><span class="co">#&gt;  [5] "profits"        "reconciliation" "children"       "foster"        </span></span>
-<span><span class="co">#&gt;  [9] "birth"          "denied"</span></span>
+<span><span class="co">#&gt;  [1] "sick"           "health"         "profits"        "care"          </span></span>
+<span><span class="co">#&gt;  [5] "reconciliation" "foster"         "preexisting"    "pregnancy"     </span></span>
+<span><span class="co">#&gt;  [9] "children"       "denied"</span></span>
 <span><span class="va">sl</span><span class="op">$</span><span class="va">bygroup</span><span class="op">$</span><span class="va">Republican</span><span class="op">[</span><span class="va">tax</span>, <span class="op">]</span>   <span class="co"># how Republicans word it</span></span>
-<span><span class="co">#&gt;  [1] "taxing"    "harbor"    "blame"     "green"     "error"     "criticize"</span></span>
-<span><span class="co">#&gt;  [7] "computers" "taxed"     "extra"     "authority"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] "taxing"    "harbor"    "blame"     "taxed"     "error"     "green"    </span></span>
+<span><span class="co">#&gt;  [7] "criticize" "internet"  "computers" "extra"</span></span></code></pre></div>
 <p>The shared vocabulary is fiscal (tax, budget, spending), but
 Democrats reach for <em>health, care, children, preexisting, denied</em>
 while Republicans reach for <em>taxing, taxed, CBO, authority</em>: same
@@ -173,19 +173,19 @@ faSTM swaps the classical vcov for a sandwich estimator with
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; topic3:</span></span>
 <span><span class="co">#&gt;                 Estimate Std. Error t value Pr(&gt;|t|)</span></span>
-<span><span class="co">#&gt; (Intercept)       0.0907     0.0045 20.0289   0.0000</span></span>
-<span><span class="co">#&gt; partyRepublican   0.0046     0.0067  0.6816   0.4956</span></span>
-<span><span class="co">#&gt; s(congress)1     -0.1038     0.0334 -3.1050   0.0019</span></span>
-<span><span class="co">#&gt; s(congress)2      0.0663     0.0219  3.0286   0.0025</span></span>
-<span><span class="co">#&gt; s(congress)3     -0.0224     0.0154 -1.4547   0.1460</span></span>
-<span><span class="co">#&gt; s(congress)4      0.0326     0.0178  1.8359   0.0665</span></span>
-<span><span class="co">#&gt; s(congress)5     -0.0065     0.0156 -0.4167   0.6769</span></span>
-<span><span class="co">#&gt; s(congress)6      0.0203     0.0122  1.6706   0.0950</span></span>
-<span><span class="co">#&gt; s(congress)7      0.0153     0.0139  1.1027   0.2703</span></span>
-<span><span class="co">#&gt; s(congress)8      0.0297     0.0218  1.3633   0.1730</span></span>
-<span><span class="co">#&gt; s(congress)9      0.0282     0.0257  1.0992   0.2719</span></span>
-<span><span class="co">#&gt; s(congress)10    -0.0106     0.0052 -2.0476   0.0408</span></span>
-<span><span class="co">#&gt;   R-squared: 0.005 | F(11,1667): 0.79</span></span></code></pre></div>
+<span><span class="co">#&gt; (Intercept)       0.0951     0.0047 20.0328   0.0000</span></span>
+<span><span class="co">#&gt; partyRepublican   0.0028     0.0070  0.3964   0.6919</span></span>
+<span><span class="co">#&gt; s(congress)1     -0.1217     0.0333 -3.6538   0.0003</span></span>
+<span><span class="co">#&gt; s(congress)2      0.0822     0.0211  3.8978   0.0001</span></span>
+<span><span class="co">#&gt; s(congress)3     -0.0332     0.0144 -2.3109   0.0210</span></span>
+<span><span class="co">#&gt; s(congress)4      0.0314     0.0164  1.9192   0.0551</span></span>
+<span><span class="co">#&gt; s(congress)5     -0.0156     0.0139 -1.1232   0.2615</span></span>
+<span><span class="co">#&gt; s(congress)6      0.0193     0.0111  1.7326   0.0834</span></span>
+<span><span class="co">#&gt; s(congress)7      0.0100     0.0127  0.7858   0.4321</span></span>
+<span><span class="co">#&gt; s(congress)8      0.0302     0.0206  1.4685   0.1422</span></span>
+<span><span class="co">#&gt; s(congress)9      0.0139     0.0237  0.5847   0.5588</span></span>
+<span><span class="co">#&gt; s(congress)10    -0.0176     0.0054 -3.2775   0.0011</span></span>
+<span><span class="co">#&gt;   R-squared: 0.005 | F(11,1667): 0.81</span></span></code></pre></div>
 <p><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> also takes <code>p.adjust.method</code>
 (e.g. <code>"BH"</code>) to correct across topics, and reports
 per-equation R² and F diagnostics. <strong>Survey weights</strong> enter
@@ -213,10 +213,10 @@ the mean change in topic proportion for a Republican-vs-Democrat shift,
 averaged over the sample:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/ame.html">ame</a></span><span class="op">(</span><span class="va">eff</span>, covariate <span class="op">=</span> <span class="st">"party"</span>, topics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">7</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   topic            term          ame          se        lower      upper</span></span>
-<span><span class="co">#&gt; 1     1 partyRepublican  0.006103871 0.005660509 -0.004998583 0.01720633</span></span>
-<span><span class="co">#&gt; 2     3 partyRepublican  0.004572807 0.006708445 -0.008585058 0.01773067</span></span>
-<span><span class="co">#&gt; 3     7 partyRepublican -0.002083247 0.006906677 -0.015629921 0.01146343</span></span></code></pre></div>
+<span><span class="co">#&gt;   topic            term          ame          se       lower      upper</span></span>
+<span><span class="co">#&gt; 1     1 partyRepublican  0.005506650 0.005370920 -0.00502781 0.01604111</span></span>
+<span><span class="co">#&gt; 2     3 partyRepublican  0.002789467 0.007036878 -0.01101258 0.01659152</span></span>
+<span><span class="co">#&gt; 3     7 partyRepublican -0.001322081 0.006370965 -0.01381802 0.01117385</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="topic-prevalence-over-time">Topic prevalence over time<a class="anchor" aria-label="anchor" href="#topic-prevalence-over-time"></a>
@@ -242,11 +242,11 @@ metrics common in the topic-model literature: <strong>NPMI</strong> and
 <span>  c_v   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/coherence.html">coherence</a></span><span class="op">(</span><span class="va">fit</span>, measure <span class="op">=</span> <span class="st">"c_v"</span>,   M <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt;   topic  mimno  npmi   c_v</span></span>
-<span><span class="co">#&gt; 1     1 -84.61 0.104 0.559</span></span>
-<span><span class="co">#&gt; 2     2 -80.32 0.139 0.620</span></span>
-<span><span class="co">#&gt; 3     3 -51.80 0.135 0.640</span></span>
-<span><span class="co">#&gt; 4     4 -65.44 0.183 0.701</span></span>
-<span><span class="co">#&gt; 5     5 -85.67 0.153 0.663</span></span></code></pre></div>
+<span><span class="co">#&gt; 1     1 -69.34 0.101 0.553</span></span>
+<span><span class="co">#&gt; 2     2 -73.12 0.142 0.634</span></span>
+<span><span class="co">#&gt; 3     3 -51.61 0.135 0.640</span></span>
+<span><span class="co">#&gt; 4     4 -68.07 0.140 0.642</span></span>
+<span><span class="co">#&gt; 5     5 -89.67 0.153 0.663</span></span></code></pre></div>
 <p><code><a href="../reference/search_k.html">search_k()</a></code> can select K by any of these, and
 parallelizes across K:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
@@ -262,23 +262,23 @@ straight into <code>dplyr</code>/<code>ggplot2</code>.</p>
 <code class="sourceCode R"><span><span class="co"># tidy the topic-word matrix (also matrix = "frex" or "gamma")</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://generics.r-lib.org/reference/tidy.html" class="external-link">tidy</a></span><span class="op">(</span><span class="va">fit</span>, matrix <span class="op">=</span> <span class="st">"beta"</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   topic   term         beta</span></span>
-<span><span class="co">#&gt; 1     1  words 5.162615e-04</span></span>
-<span><span class="co">#&gt; 2     1 daniel 5.855844e-13</span></span>
-<span><span class="co">#&gt; 3     1 served 3.306205e-04</span></span>
-<span><span class="co">#&gt; 4     1  armed 1.130633e-12</span></span>
+<span><span class="co">#&gt; 1     1  words 5.127769e-04</span></span>
+<span><span class="co">#&gt; 2     1 daniel 5.698705e-13</span></span>
+<span><span class="co">#&gt; 3     1 served 3.525644e-04</span></span>
+<span><span class="co">#&gt; 4     1  armed 2.465336e-12</span></span>
 <span></span>
 <span><span class="co"># one-row model summary</span></span>
 <span><span class="fu"><a href="https://generics.r-lib.org/reference/glance.html" class="external-link">glance</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    k docs terms content_groups iterations converged</span></span>
-<span><span class="co">#&gt; 1 12 1679  4110              1         68      TRUE</span></span>
+<span><span class="co">#&gt; 1 12 1679  4110              1         70      TRUE</span></span>
 <span></span>
 <span><span class="co"># tidy an estimated effect into a coefficient table</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://generics.r-lib.org/reference/tidy.html" class="external-link">tidy</a></span><span class="op">(</span><span class="va">eff</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    topic            term     estimate   std.error statistic      p.value</span></span>
-<span><span class="co">#&gt; 1 topic1     (Intercept)  0.067557112 0.004297543 15.719937 4.970589e-52</span></span>
-<span><span class="co">#&gt; 2 topic1 partyRepublican  0.006103871 0.005660509  1.078326 2.810445e-01</span></span>
-<span><span class="co">#&gt; 3 topic1    s(congress)1 -0.059664679 0.024336967 -2.451607 1.432398e-02</span></span>
-<span><span class="co">#&gt; 4 topic1    s(congress)2  0.060010549 0.017085541  3.512359 4.559887e-04</span></span></code></pre></div>
+<span><span class="co">#&gt;    topic            term    estimate   std.error statistic      p.value</span></span>
+<span><span class="co">#&gt; 1 topic1     (Intercept)  0.07235789 0.004353876 16.619190 1.649890e-57</span></span>
+<span><span class="co">#&gt; 2 topic1 partyRepublican  0.00550665 0.005370920  1.025271 3.053840e-01</span></span>
+<span><span class="co">#&gt; 3 topic1    s(congress)1 -0.06616952 0.025091558 -2.637123 8.438957e-03</span></span>
+<span><span class="co">#&gt; 4 topic1    s(congress)2  0.06182077 0.018241878  3.388948 7.179648e-04</span></span></code></pre></div>
 <p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> infers topic proportions for new documents
 against the fitted model:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
