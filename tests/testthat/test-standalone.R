@@ -59,6 +59,20 @@ test_that("honest estimateEffect yields a coefficient per term per topic", {
   expect_true("(Intercept)" %in% rownames(s$tables[[1L]]))
 })
 
+test_that("one-sided estimateEffect formula covers all topics (RHS-only regression)", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  # `~ Party` with no LHS is valid stm usage: estimate over every topic. The RHS
+  # must survive formula reduction -- an earlier bug deleted element 2 of the
+  # one-sided formula, erasing the RHS and crashing findbars ("subscript out of
+  # bounds"). Guard it: the fit must run and cover all K topics.
+  eff <- estimateEffect(~ Party, f$fit, metadata = f$corpus$meta,
+                        nsims = 20L, seed = 1L)
+  s <- summary(eff)
+  expect_length(s$tables, 6L)
+  expect_true(any(grepl("Party", rownames(s$tables[[1L]]))))
+})
+
 test_that("search_k returns diagnostics per K and a tidy long form", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   dfmat <- quanteda::dfm_trim(
