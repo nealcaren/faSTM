@@ -24,8 +24,10 @@ extendr-api = "0.7"
 # regex; no pyo3/numpy/JVM) is what faSTM vendors for CRAN. The bump from v0.26.0
 # pulls topica#265 (spectral init weighted by the pooled unigram frequency, exact
 # stm `wprob` parity).
-topica-core = { git = "https://github.com/nealcaren/topica", tag = "v0.32.0", default-features = false }
-# DEV: topica-core = { path = "../../../topica/topica-core", default-features = false }
+# DEV: pointing at the local topica-core (ordered-time content covariate work).
+# Restore the pinned tag before release once topica-core is tagged.
+# topica-core = { git = "https://github.com/nealcaren/topica", tag = "v0.32.0", default-features = false }
+topica-core = { path = "../../../topica/topica-core", default-features = false }
 
 # Must match topica's lockfile so the `Rng` trait bound and the seed stream are
 # byte-identical to topica's own STM fits (parity).

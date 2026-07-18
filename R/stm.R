@@ -17,6 +17,26 @@
 #'   design matrix; topic prevalence covariates. `data` supplies the variables.
 #' @param content A right-hand-side formula naming a single categorical variable,
 #'   or a factor; the SAGE content covariate. `data` supplies the variable.
+#' @param content_time An optional ordered (time) content covariate: a formula
+#'   (e.g. `~ year`) or a factor whose sorted levels give the period order. Its
+#'   period-by-period content deviations, crossed with `content`, are tied by a
+#'   first-order random walk so adjacent periods borrow strength. This is the
+#'   temporal generalization of the SAGE content covariate: it lets a group's
+#'   wording of a topic drift smoothly over time. Pass sortable period labels
+#'   (years, zero-padded strings) so the ordering is chronological. `NULL`
+#'   (default) fits the ordinary static content model.
+#' @param content_smooth Random-walk smoothing strength for `content_time`,
+#'   `1/tau^2`. Larger pools adjacent periods harder (toward static content);
+#'   `0` recovers the fully saturated content factor (independent per-period
+#'   cells). Ignored when `content_time` is `NULL`.
+#' @param content_prior Prior on the SAGE content deviations: `"l2"` (default,
+#'   Gaussian ridge) or `"l1"` (sparse Laplace on the group and topic-by-group
+#'   deviation blocks, like `stm`'s sparse content model). `"l1"` recovers sparse
+#'   content contrasts an L2 prior cannot -- more accurate when only a few words
+#'   distinguish the groups (the common case) -- at some extra fit time.
+#' @param content_prior_var Content-prior scale. Under `"l2"` it is the Gaussian
+#'   variance on the deviations (smaller shrinks harder); under `"l1"` the sparsity
+#'   rate is `1/content_prior_var`. Only used when a content covariate is supplied.
 #' @param data A data.frame of document metadata (the `meta` from
 #'   [stm::prepDocuments()]), aligned to `documents`.
 #' @param max.em.its Maximum EM iterations (batch) / epochs (svi).
@@ -46,6 +66,8 @@
 #' @export
 stm <- function(documents, vocab, K,
                 prevalence = NULL, content = NULL, data = NULL,
+                content_time = NULL, content_smooth = 1.0,
+                content_prior = c("l2", "l1"), content_prior_var = 0.5,
                 max.em.its = 500L, emtol = 1e-5,
                 init.type = c("Spectral", "Random", "LDA", "Custom"),
                 init.beta = NULL, model = NULL,
@@ -60,6 +82,12 @@ stm <- function(documents, vocab, K,
   init.type <- match.arg(init.type)
   gamma.prior <- match.arg(gamma.prior)
   inference <- match.arg(inference)
+  content_prior <- match.arg(content_prior)
+  ## Content-deviation prior: "l2" (default, Gaussian ridge) or "l1" (sparse
+  ## Laplace on the group/topic-by-group deviations, SAGE-style; rate
+  ## 1/content_prior_var). L1 recovers sparse content contrasts an L2 prior cannot,
+  ## at some extra fit time (FISTA vs L-BFGS), but still far faster than stm.
+  content_l1 <- if (content_prior == "l1") 1 / content_prior_var else 0
   if (!is.numeric(K) || length(K) != 1L || K < 2L || K != as.integer(K))
     stop("K must be a single integer >= 2.", call. = FALSE)
 
@@ -127,6 +155,47 @@ stm <- function(documents, vocab, K,
     message(sprintf("faSTM: crossing %d content covariates (%s) into a saturated content model with %d groups.",
                     length(cont$vars), paste(cont$vars, collapse = ", "), num_groups))
 
+  ## ---- ordered-time content axis (content_time) --------------------------
+  ## An ordered covariate whose per-period content deviations are tied by a
+  ## first-order random walk (strength content_smooth = 1/tau^2). The group axis
+  ## is saturated as base*num_periods + period so adjacent periods are neighbours;
+  ## the random walk borrows strength across them (faSTM's content s()).
+  ct_num_base <- 0L; ct_num_periods <- 0L; ct_smooth <- 0.0
+  if (!is.null(content_time)) {
+    # Resolve the ordered periods. .make_content warns when a content covariate is
+    # numeric (it would become one level per value); for an ordered TIME axis that
+    # categorical treatment is exactly intended, so mute only that warning here.
+    ctf <- withCallingHandlers(
+      .make_content(content_time, data, D),
+      warning = function(w) {
+        if (grepl("numeric; SAGE treats", conditionMessage(w), fixed = TRUE))
+          invokeRestart("muffleWarning")
+      })
+    periods    <- ctf$levels                              # sorted -> chronological if sortable
+    period_idx <- ctf$group                               # 0-based
+    np <- length(periods)
+    if (np < 2L)
+      stop("content_time has < 2 periods; nothing to smooth over.", call. = FALSE)
+    if (is.null(cont)) {
+      base_idx <- rep(0L, D); base_n <- 1L; base_levels <- "_all"; base_vars <- character()
+    } else {
+      base_idx <- cont$group; base_n <- length(cont$levels)
+      base_levels <- cont$levels; base_vars <- cont$vars
+    }
+    content_groups <- as.integer(base_idx * np + period_idx)   # base-major, period-minor
+    num_groups <- base_n * np
+    sat_levels <- as.vector(t(outer(base_levels, periods,
+                                     FUN = function(a, b) paste(a, b, sep = "@"))))
+    cont <- list(group = content_groups, levels = sat_levels,
+                 vars = c(base_vars, "content_time"))
+    ct_num_base <- as.integer(base_n)
+    ct_num_periods <- as.integer(np)
+    ct_smooth <- as.double(content_smooth)
+    if (verbose)
+      message(sprintf("faSTM: ordered content_time, %d periods x %d base groups = %d cells; RW smooth=%.3g.",
+                      np, base_n, num_groups, ct_smooth))
+  }
+
   ## ---- svi gating --------------------------------------------------------
   if (inference == "svi" && (!is.null(prev) || !is.null(cont))) {
     stop("inference = \"svi\" with prevalence/content requires a topica build ",
@@ -167,6 +236,11 @@ stm <- function(documents, vocab, K,
     num_features   = num_features,
     content_groups = content_groups,
     num_groups     = num_groups,
+    content_time_num_base    = ct_num_base,
+    content_time_num_periods = ct_num_periods,
+    content_time_smooth      = ct_smooth,
+    content_prior_var        = as.double(content_prior_var),
+    content_l1               = as.double(content_l1),
     init_spectral  = identical(init.type, "Spectral"),
     init_beta      = if (is.null(init.beta)) NULL else as.double(t(init.beta)),  # K*V row-major
     gamma_l1_alpha = if (gamma.prior == "L1") as.double(gamma.l1.alpha) else NULL,

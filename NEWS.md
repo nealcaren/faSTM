@@ -4,6 +4,16 @@ A fast, modern Structural Topic Model for R: an `stm`-compatible fitting backend
 on a multithreaded Rust core (`topica`), plus an effects and tidy-workflow
 toolkit on top.
 
+## New features
+
+* `stm()` gains `content_time` and `content_smooth`: an ordered (time) content
+  covariate whose per-period content deviations, crossed with `content`, are tied
+  by a first-order random walk (strength `content_smooth = 1/tau^2`). This is the
+  temporal generalization of the SAGE content covariate, letting a group's wording
+  of a topic drift smoothly over ordered periods rather than staying static or
+  fragmenting into independent per-period cells. `content_smooth = 0` recovers the
+  fully saturated content factor; `content_time = NULL` (default) is unchanged.
+
 ## Fitting
 
 * `stm()`: fast STM fit via `topica`'s Rust `fit_ctm`, returning a

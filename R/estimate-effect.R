@@ -48,7 +48,12 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
 
   K <- ncol(stmobj$theta)
   topics <- .formula_topics(formula, K)
-  fml_rhs <- formula; fml_rhs[[2L]] <- NULL          # ~ RHS (drop the topic LHS)
+  ## Reduce to the RHS. A two-sided `topics ~ rhs` drops its LHS; a one-sided
+  ## `~ rhs` (all topics, valid stm usage) is already RHS-only and must be left
+  ## alone -- deleting element 2 there would erase the RHS and yield a malformed
+  ## formula.
+  fml_rhs <- formula
+  if (length(fml_rhs) == 3L) fml_rhs[[2L]] <- NULL
   has_re <- length(.find_bars(fml_rhs)) > 0L         # any (term | group) ?
   if (has_re && !requireNamespace("lme4", quietly = TRUE))
     stop("random-effect terms `( | )` need the 'lme4' package.", call. = FALSE)
