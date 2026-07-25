@@ -83,14 +83,16 @@ content_trajectory <- function(object, words, groups = NULL, topic = NULL,
   reps <- vector("list", B)
   for (b in seq_len(B)) {
     idx <- .boot_index(n, clust)
-    fit_b <- tryCatch(
-      do.call(stm, c(list(documents = docs[idx], vocab = corpus$vocab,
-                          data = corpus$meta[idx, , drop = FALSE], verbose = FALSE),
-                     fit_args)),
-      error = function(e) NULL)
-    if (is.null(fit_b)) next
-    reps[[b]] <- .content_traj_from_fit(fit_b, words, groups, topic = NULL,
-                                        anchor_words = anchor_words, warn = FALSE)
+    # wrap the refit AND the reader: a degenerate resample can either fail to fit
+    # or fit but drop a word/period the reader then trips on. Either way this
+    # replicate is dropped to NULL and .boot_matrix NA-aligns around it.
+    reps[[b]] <- tryCatch({
+      fit_b <- do.call(stm, c(list(documents = docs[idx], vocab = corpus$vocab,
+                                   data = corpus$meta[idx, , drop = FALSE],
+                                   verbose = FALSE), fit_args))
+      .content_traj_from_fit(fit_b, words, groups, topic = NULL,
+                             anchor_words = anchor_words, warn = FALSE)
+    }, error = function(e) NULL)
   }
   keys <- paste(est$word, est$period)
   mat  <- .boot_matrix(reps, keys, function(df) paste(df$word, df$period),
@@ -146,15 +148,13 @@ content_divergence <- function(object, groups = NULL, topic = NULL,
   reps <- vector("list", B)
   for (b in seq_len(B)) {
     idx <- .boot_index(n, clust)
-    fit_b <- tryCatch(
-      do.call(stm, c(list(documents = docs[idx], vocab = corpus$vocab,
-                          data = corpus$meta[idx, , drop = FALSE], verbose = FALSE),
-                     fit_args)),
-      error = function(e) NULL)
-    if (is.null(fit_b)) next
-    reps[[b]] <- .content_div_from_fit(fit_b, groups, topic = NULL,
-                                       anchor_words = anchor_words, measure,
-                                       warn = FALSE)
+    reps[[b]] <- tryCatch({
+      fit_b <- do.call(stm, c(list(documents = docs[idx], vocab = corpus$vocab,
+                                   data = corpus$meta[idx, , drop = FALSE],
+                                   verbose = FALSE), fit_args))
+      .content_div_from_fit(fit_b, groups, topic = NULL,
+                            anchor_words = anchor_words, measure, warn = FALSE)
+    }, error = function(e) NULL)
   }
   keys <- as.character(est$period)
   mat  <- .boot_matrix(reps, keys, function(df) as.character(df$period),
@@ -222,13 +222,22 @@ content_divergence <- function(object, groups = NULL, topic = NULL,
 # `content_time` model with no `content` covariate has one base level, so the
 # default second group would be NA -> silent all-NA output).
 .resolve_groups <- function(groups, base) {
-  if (!is.null(groups)) return(groups)
   ub <- unique(base)
-  if (length(ub) < 2L)
-    stop("the model has a single content group ('", ub[1], "'); ",
-         "content trajectories/divergence compare two groups. Fit with a `content` ",
-         "covariate, or pass `groups` explicitly.", call. = FALSE)
-  ub[1:2]
+  if (is.null(groups)) {
+    if (length(ub) < 2L)
+      stop("the model has a single content group ('", ub[1], "'); content ",
+           "trajectories/divergence contrast two groups. Refit with a `content` ",
+           "covariate that distinguishes them.", call. = FALSE)
+    return(ub[1:2])
+  }
+  if (length(groups) != 2L)
+    stop("`groups` must name exactly two content groups; got ", length(groups),
+         ".", call. = FALSE)
+  miss <- setdiff(groups, ub)
+  if (length(miss))
+    stop("content group(s) not in the model: ", paste(miss, collapse = ", "),
+         ". Available: ", paste(ub, collapse = ", "), ".", call. = FALSE)
+  groups
 }
 
 # One bootstrap resample of document indices. With `clust` (a per-document cluster

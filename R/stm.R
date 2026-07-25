@@ -184,6 +184,12 @@ stm <- function(documents, vocab, K,
     }
     content_groups <- as.integer(base_idx * np + period_idx)   # base-major, period-minor
     num_groups <- base_n * np
+    # "@" joins base and period into the saturated cell label; the readers split on
+    # it, so a label already containing "@" would corrupt the round-trip.
+    if (any(grepl("@", base_levels, fixed = TRUE)) ||
+        any(grepl("@", periods, fixed = TRUE)))
+      stop("content and content_time levels must not contain '@' (reserved as the ",
+           "internal cell separator).", call. = FALSE)
     sat_levels <- as.vector(t(outer(base_levels, periods,
                                      FUN = function(a, b) paste(a, b, sep = "@"))))
     cont <- list(group = content_groups, levels = sat_levels,

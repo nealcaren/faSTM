@@ -102,6 +102,29 @@ test_that("readers guard degenerate inputs (no vocab match, single content group
   fit1 <- stm(cc$docs, cc$vocab, K = 2L, content_time = ~ yr, data = cc$meta,
               init.type = "Spectral", seed = 1L, verbose = FALSE)
   expect_error(content_divergence(fit1, topic = 1L), "single content group")
+
+  # an explicit `groups` must name exactly two groups that exist in the model
+  expect_error(content_divergence(fit, groups = "A", topic = 1L),
+               "exactly two")
+  expect_error(content_divergence(fit, groups = c("A", "ZZ"), topic = 1L),
+               "not in the model")
+})
+
+test_that("bootstrap drops a whole replicate when a refit reader throws", {
+  skip_on_cran()
+  cc <- .ct_corpus()
+  corp <- structure(list(documents = cc$docs, vocab = cc$vocab, meta = cc$meta),
+                    class = "faSTM_corpus")
+  fit <- stm(cc$docs, cc$vocab, K = 2L, content = ~ grp, content_time = ~ yr,
+             data = cc$meta, init.type = "Spectral", seed = 1L, verbose = FALSE)
+  # fit_args that OMIT content_time: each refit *succeeds* but the reader then throws
+  # ("not fit with a content_time covariate"). That per-replicate error must be caught
+  # and the replicate dropped, surfacing the clean all-failed guard -- not crash.
+  bad <- list(K = 2L, content = ~ grp, init.type = "Spectral", seed = 1L)
+  expect_error(
+    content_divergence(fit, groups = c("A", "B"), anchor_words = c("9", "10"),
+                       ci = TRUE, corpus = corp, fit_args = bad, B = 3L, seed = 1L),
+    "no usable replicates")
 })
 
 test_that("bootstrap CI attaches percentile bands on the happy path", {

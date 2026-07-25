@@ -78,7 +78,9 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
   ## rank-deficient, so some coefficients' SEs are understated. Warn rather than
   ## return silently degenerate uncertainty.
   if (!is.null(cl) && !has_re) {
-    ng <- length(unique(cl))
+    # count clusters the way `.ols`'s split() does -- NAs are dropped there, so an
+    # NA in `cl` must not inflate the count past the < 2 guard.
+    ng <- length(unique(cl[!is.na(cl)]))
     p  <- ncol(X)
     if (ng < 2L)
       warning("cluster-robust SEs need at least 2 clusters; got ", ng,
