@@ -72,6 +72,24 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
   cl <- if (is.null(cluster)) NULL else cluster[keep]
   X <- if (has_re) NULL else stats::model.matrix(mterms, mf)
 
+  ## Cluster-robust SEs need many clusters. With < 2 clusters the sandwich meat
+  ## collapses (the finite-sample factor ng/(ng-1) blows up while the score sums to
+  ## ~0), giving spuriously near-zero SEs; with G <= p the cluster covariance is
+  ## rank-deficient, so some coefficients' SEs are understated. Warn rather than
+  ## return silently degenerate uncertainty.
+  if (!is.null(cl) && !has_re) {
+    ng <- length(unique(cl))
+    p  <- ncol(X)
+    if (ng < 2L)
+      warning("cluster-robust SEs need at least 2 clusters; got ", ng,
+              ". The sandwich collapses and SEs will be ~0 (spuriously confident); ",
+              "drop `cluster` or use a coarser grouping.", call. = FALSE)
+    else if (ng <= p)
+      warning("cluster-robust SEs have only ", ng, " clusters for ", p,
+              " coefficients (G <= p): the cluster covariance is rank-deficient, so ",
+              "some SEs are unreliable (understated).", call. = FALSE)
+  }
+
   if (uncertainty == "None") {
     draws <- list(stmobj$theta)
   } else {

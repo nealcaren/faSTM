@@ -429,3 +429,20 @@ test_that("estimateEffect weights/cluster align by position (non-sequential meta
   # weights actually change the estimate vs unweighted
   expect_false(isTRUE(all.equal(eff_w$coefficients[[1]]$est, eff_u$coefficients[[1]]$est)))
 })
+
+test_that("estimateEffect warns on too-few clusters for cluster-robust SEs", {
+  skip_on_cran()
+  skip_if_not_built()
+  f <- make_fit(6L)
+  n <- nrow(f$corpus$meta)
+  # a single cluster: the CR1 sandwich meat collapses -> spuriously ~0 SEs
+  expect_warning(
+    estimateEffect(1:6 ~ Party, f$fit, metadata = f$corpus$meta,
+                   cluster = rep(1L, n), nsims = 5L, seed = 1L),
+    "at least 2 clusters")
+  # G <= p: the cluster covariance is rank-deficient -> understated SEs
+  expect_warning(
+    estimateEffect(1:6 ~ Party, f$fit, metadata = f$corpus$meta,
+                   cluster = rep(1:2, length.out = n), nsims = 5L, seed = 1L),
+    "rank-deficient")
+})
