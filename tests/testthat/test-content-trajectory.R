@@ -69,6 +69,41 @@ test_that("bootstrap CI errors clearly when every refit fails", {
     "no usable replicates")
 })
 
+test_that("periods follow the fit's ordered-factor level order, not an alpha sort", {
+  skip_on_cran()
+  cc <- .ct_corpus()
+  # relabel the three years as a deliberately non-alphabetical ordered factor:
+  # level order pre < during < post, whose sort() order (during, post, pre) differs.
+  phase <- factor(c("pre", "during", "post")[cc$meta$yr - 2000L],
+                  levels = c("pre", "during", "post"))
+  meta <- data.frame(grp = cc$meta$grp, phase = phase)
+  fit <- stm(cc$docs, cc$vocab, K = 2L, content = ~ grp, content_time = ~ phase,
+             data = meta, init.type = "Spectral", seed = 1L, verbose = FALSE)
+
+  tr <- content_trajectory(fit, words = c("9", "10"), groups = c("A", "B"), topic = 1L)
+  # chronological (factor-level) order, NOT sort() -> would be during, post, pre
+  expect_equal(unique(tr$period), c("pre", "during", "post"))
+  dv <- content_divergence(fit, groups = c("A", "B"), topic = 1L)
+  expect_equal(dv$period, c("pre", "during", "post"))
+})
+
+test_that("readers guard degenerate inputs (no vocab match, single content group)", {
+  skip_on_cran()
+  cc <- .ct_corpus()
+  fit <- stm(cc$docs, cc$vocab, K = 2L, content = ~ grp, content_time = ~ yr,
+             data = cc$meta, init.type = "Spectral", seed = 1L, verbose = FALSE)
+  # no requested word is in the vocabulary -> clear error, not a NULL/malformed frame
+  expect_error(
+    content_trajectory(fit, words = "not_a_word", groups = c("A", "B"), topic = 1L),
+    "vocabulary")
+
+  # content_time without a content covariate has a single base group, so the default
+  # two-group contrast is undefined -> error rather than silent all-NA output
+  fit1 <- stm(cc$docs, cc$vocab, K = 2L, content_time = ~ yr, data = cc$meta,
+              init.type = "Spectral", seed = 1L, verbose = FALSE)
+  expect_error(content_divergence(fit1, topic = 1L), "single content group")
+})
+
 test_that("bootstrap CI attaches percentile bands on the happy path", {
   skip_on_cran()
   cc <- .ct_corpus()

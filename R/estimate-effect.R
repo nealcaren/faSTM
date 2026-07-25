@@ -73,8 +73,8 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
   X <- if (has_re) NULL else stats::model.matrix(mterms, mf)
 
   ## Cluster-robust SEs need many clusters. With < 2 clusters the sandwich meat
-  ## collapses (the finite-sample factor ng/(ng-1) blows up while the score sums to
-  ## ~0), giving spuriously near-zero SEs; with G <= p the cluster covariance is
+  ## collapses: the finite-sample factor ng/(ng-1) is 1/0 = Inf while the OLS score
+  ## sums to 0, so Inf*0 = NaN SEs; with G <= p the cluster covariance is
   ## rank-deficient, so some coefficients' SEs are understated. Warn rather than
   ## return silently degenerate uncertainty.
   if (!is.null(cl) && !has_re) {
@@ -82,8 +82,9 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
     p  <- ncol(X)
     if (ng < 2L)
       warning("cluster-robust SEs need at least 2 clusters; got ", ng,
-              ". The sandwich collapses and SEs will be ~0 (spuriously confident); ",
-              "drop `cluster` or use a coarser grouping.", call. = FALSE)
+              ". The finite-sample factor ng/(ng-1) is undefined (1/0) so the meat ",
+              "and resulting SEs collapse to NaN; drop `cluster` or use a coarser ",
+              "grouping.", call. = FALSE)
     else if (ng <= p)
       warning("cluster-robust SEs have only ", ng, " clusters for ", p,
               " coefficients (G <= p): the cluster covariance is rank-deficient, so ",

@@ -90,12 +90,13 @@ content_trajectory <- function(object, words, groups = NULL, topic = NULL,
       error = function(e) NULL)
     if (is.null(fit_b)) next
     reps[[b]] <- .content_traj_from_fit(fit_b, words, groups, topic = NULL,
-                                        anchor_words = anchor_words)$estimate
+                                        anchor_words = anchor_words, warn = FALSE)
   }
-  mat <- .boot_matrix(reps, B)
-  a <- (1 - level) / 2
-  est$conf.low  <- apply(mat, 1, stats::quantile, probs = a,     na.rm = TRUE)
-  est$conf.high <- apply(mat, 1, stats::quantile, probs = 1 - a, na.rm = TRUE)
+  keys <- paste(est$word, est$period)
+  mat  <- .boot_matrix(reps, keys, function(df) paste(df$word, df$period),
+                       "estimate", B)
+  ci <- .boot_ci(mat, level)
+  est$conf.low <- ci$low; est$conf.high <- ci$high
   attr(est, "B") <- ncol(mat)
   est
 }
@@ -152,22 +153,25 @@ content_divergence <- function(object, groups = NULL, topic = NULL,
       error = function(e) NULL)
     if (is.null(fit_b)) next
     reps[[b]] <- .content_div_from_fit(fit_b, groups, topic = NULL,
-                                       anchor_words = anchor_words, measure)$divergence
+                                       anchor_words = anchor_words, measure,
+                                       warn = FALSE)
   }
-  mat <- .boot_matrix(reps, B)
-  a <- (1 - level) / 2
-  est$conf.low  <- apply(mat, 1, stats::quantile, probs = a,     na.rm = TRUE)
-  est$conf.high <- apply(mat, 1, stats::quantile, probs = 1 - a, na.rm = TRUE)
+  keys <- as.character(est$period)
+  mat  <- .boot_matrix(reps, keys, function(df) as.character(df$period),
+                       "divergence", B)
+  ci <- .boot_ci(mat, level)
+  est$conf.low <- ci$low; est$conf.high <- ci$high
   attr(est, "B") <- ncol(mat)
   est
 }
 
-# Assemble the successful bootstrap replicates into a matrix. A few failed refits
-# (a degenerate resample dropping a period) are expected and dropped; every refit
-# failing is not, and used to fall through to `cbind()` of nothing -> a cryptic
-# `apply(NULL, ...)` error. Surface it clearly instead, and warn on a high failure
-# rate so a NaN-ish band is not mistaken for genuine uncertainty.
-.boot_matrix <- function(reps, B) {
+# Assemble the successful bootstrap replicates into a matrix aligned to the point
+# estimate's rows. Refits that *throw* are dropped (all-failed is surfaced as a
+# clear error, not a cryptic `apply(NULL, ...)`; a high failure rate warns). A refit
+# that *succeeds* but whose resample drops a period yields a shorter frame -- we must
+# not `cbind` raw vectors (silent recycling misaligns word/period across replicates),
+# so each replicate is realigned to `ref_keys` by label, NA-filling missing cells.
+.boot_matrix <- function(reps, ref_keys, keyfun, valcol, B) {
   ok <- reps[!vapply(reps, is.null, logical(1))]
   if (length(ok) == 0L)
     stop("bootstrap produced no usable replicates: all ", B, " refits failed. ",
@@ -176,7 +180,55 @@ content_divergence <- function(object, groups = NULL, topic = NULL,
   if (length(ok) < B %/% 2L)
     warning(B - length(ok), " of ", B, " bootstrap refits failed; the CI uses only ",
             length(ok), " replicates and may be unreliable.", call. = FALSE)
-  do.call(cbind, ok)
+  mat <- vapply(ok, function(df) df[[valcol]][match(ref_keys, keyfun(df))],
+                numeric(length(ref_keys)))
+  if (is.null(dim(mat))) mat <- matrix(mat, nrow = length(ref_keys))
+  mat
+}
+
+# Percentile CI per row, tolerating rows that are all-NA across replicates (an
+# unsampled (word, )period in every kept refit) rather than letting `quantile()`
+# choke on `numeric(0)`.
+.boot_ci <- function(mat, level) {
+  a <- (1 - level) / 2
+  q <- function(x, p) if (all(is.na(x))) NA_real_ else
+    stats::quantile(x, probs = p, na.rm = TRUE, names = FALSE)
+  list(low  = apply(mat, 1, q, p = a),
+       high = apply(mat, 1, q, p = 1 - a))
+}
+
+# Pick the target topic: an explicit `topic`, or the topic whose top-20 words best
+# overlap `anchor_words`. All-zero overlap silently resolves to topic 1 via
+# `which.max`, so warn when that happens (the point-estimate call; muted in the
+# bootstrap loop via `warn = FALSE`).
+.pick_topic <- function(lb, vocab, topic, anchor_words, warn = TRUE) {
+  if (!is.null(anchor_words)) {
+    avg <- Reduce(`+`, lb) / length(lb)
+    ov <- apply(avg, 1, function(r)
+      sum(vocab[order(r, decreasing = TRUE)[1:20]] %in% anchor_words))
+    if (warn && max(ov) == 0)
+      warning("no `anchor_words` matched any topic's top-20 words; defaulting to ",
+              "topic 1 -- check `anchor_words` against the model vocabulary.",
+              call. = FALSE)
+    which.max(ov)
+  } else if (!is.null(topic)) {
+    as.integer(topic)
+  } else {
+    stop("supply either `topic` or `anchor_words`.", call. = FALSE)
+  }
+}
+
+# Resolve the two content groups to contrast, guarding the single-group case (a
+# `content_time` model with no `content` covariate has one base level, so the
+# default second group would be NA -> silent all-NA output).
+.resolve_groups <- function(groups, base) {
+  if (!is.null(groups)) return(groups)
+  ub <- unique(base)
+  if (length(ub) < 2L)
+    stop("the model has a single content group ('", ub[1], "'); ",
+         "content trajectories/divergence compare two groups. Fit with a `content` ",
+         "covariate, or pass `groups` explicitly.", call. = FALSE)
+  ub[1:2]
 }
 
 # One bootstrap resample of document indices. With `clust` (a per-document cluster
@@ -189,25 +241,21 @@ content_divergence <- function(object, groups = NULL, topic = NULL,
 }
 
 # Per-period distributional distance between two groups for a single fit.
-.content_div_from_fit <- function(fit, groups, topic, anchor_words, measure) {
+.content_div_from_fit <- function(fit, groups, topic, anchor_words, measure,
+                                  warn = TRUE) {
   lb <- fit$beta$logbeta
   lev <- fit$settings$covariates$yvarlevels
   if (is.null(lev) || !any(grepl("@", lev)))
     stop("`object` was not fit with a content_time covariate.", call. = FALSE)
   parts <- do.call(rbind, strsplit(lev, "@", fixed = TRUE))
   base <- parts[, 1]; per <- parts[, 2]
-  if (is.null(groups)) groups <- unique(base)[1:2]
-  up <- unique(per); ord <- suppressWarnings(as.numeric(up))
-  periods <- if (!any(is.na(ord))) up[order(ord)] else sort(up)
+  groups <- .resolve_groups(groups, base)
+  # `unique(per)` follows the fit's cell order (base-major, period-minor), which is
+  # the chronological factor-level order the RW smoother tied -- do NOT re-sort, or
+  # ordered factors like c("pre","during","post") come out of sequence.
+  periods <- unique(per)
   vocab <- fit$vocab
-
-  if (!is.null(anchor_words)) {
-    avg <- Reduce(`+`, lb) / length(lb)
-    k <- which.max(apply(avg, 1, function(r)
-      sum(vocab[order(r, decreasing = TRUE)[1:20]] %in% anchor_words)))
-  } else if (!is.null(topic)) {
-    k <- as.integer(topic)
-  } else stop("supply either `topic` or `anchor_words`.", call. = FALSE)
+  k <- .pick_topic(lb, vocab, topic, anchor_words, warn = warn)
 
   dist <- function(pD, pR) {
     pD <- pD / sum(pD); pR <- pR / sum(pR)
@@ -224,34 +272,27 @@ content_divergence <- function(object, groups = NULL, topic = NULL,
 }
 
 # Extract the group-contrast trajectory from a single fitted model.
-.content_traj_from_fit <- function(fit, words, groups, topic, anchor_words) {
+.content_traj_from_fit <- function(fit, words, groups, topic, anchor_words,
+                                   warn = TRUE) {
   lb <- fit$beta$logbeta
   lev <- fit$settings$covariates$yvarlevels
   if (is.null(lev) || !any(grepl("@", lev)))
     stop("`object` was not fit with a content_time covariate ",
          "(no 'group@period' content levels found).", call. = FALSE)
   vocab <- fit$vocab
+  present <- intersect(words, vocab)
+  if (length(present) == 0L)
+    stop("none of `words` are in the model vocabulary.", call. = FALSE)
   parts <- do.call(rbind, strsplit(lev, "@", fixed = TRUE))
   base <- parts[, 1]; per <- parts[, 2]
-  if (is.null(groups)) groups <- unique(base)[1:2]
-  # order periods numerically when possible
-  up <- unique(per)
-  ord <- suppressWarnings(as.numeric(up))
-  periods <- if (!any(is.na(ord))) up[order(ord)] else sort(up)
-
-  # identify the target topic
-  if (!is.null(anchor_words)) {
-    avg <- Reduce(`+`, lb) / length(lb)
-    k <- which.max(apply(avg, 1, function(r)
-      sum(vocab[order(r, decreasing = TRUE)[1:20]] %in% anchor_words)))
-  } else if (!is.null(topic)) {
-    k <- as.integer(topic)
-  } else {
-    stop("supply either `topic` or `anchor_words`.", call. = FALSE)
-  }
+  groups <- .resolve_groups(groups, base)
+  # `unique(per)` follows the fit's cell order (chronological factor-level order the
+  # RW smoother tied); re-sorting would misorder ordered-factor periods.
+  periods <- unique(per)
+  k <- .pick_topic(lb, vocab, topic, anchor_words, warn = warn)
 
   cell <- function(g, p) match(paste0(g, "@", p), lev)
-  out <- do.call(rbind, lapply(intersect(words, vocab), function(w) {
+  out <- do.call(rbind, lapply(present, function(w) {
     wi <- match(w, vocab)
     data.frame(word = w, period = periods, estimate = vapply(periods, function(p) {
       i1 <- cell(groups[1], p); i2 <- cell(groups[2], p)
