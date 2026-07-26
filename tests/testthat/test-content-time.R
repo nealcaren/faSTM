@@ -45,3 +45,23 @@ test_that("content_time crosses into saturated period cells and smooths them", {
   expect_error(stm(docs, vocab, K = 3L, content_time = ~ yr, data = meta1,
                    verbose = FALSE), "< 2 periods")
 })
+
+test_that("stm() validates content-prior scales in R (clear error, not a Rust panic)", {
+  skip_on_cran()
+  set.seed(1)
+  V <- 6L
+  docs <- lapply(1:12, function(i) {
+    tab <- tabulate(sample.int(V, 5, replace = TRUE), nbins = V)
+    matrix(as.integer(rbind(which(tab > 0), tab[tab > 0])), nrow = 2)
+  })
+  vocab <- as.character(seq_len(V))
+  meta <- data.frame(grp = rep(c("A", "B"), length.out = 12),
+                     yr = rep(2000:2001, each = 6))
+  base <- function(...) stm(docs, vocab, K = 2L, content = ~ grp, data = meta,
+                            init.type = "Spectral", seed = 1L, verbose = FALSE, ...)
+  expect_error(base(content_prior = "l1", content_prior_var = 0), "content_prior_var")
+  expect_error(base(content_prior_var = -1), "content_prior_var")
+  expect_error(base(content_prior_var = Inf), "content_prior_var")
+  expect_error(base(content_time = ~ yr, content_smooth = -1), "content_smooth")
+  expect_error(base(content_time = ~ yr, content_smooth = NA_real_), "content_smooth")
+})

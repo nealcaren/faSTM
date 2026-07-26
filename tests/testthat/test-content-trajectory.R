@@ -141,3 +141,26 @@ test_that("bootstrap CI attaches percentile bands on the happy path", {
   expect_true(all(c("conf.low", "conf.high") %in% colnames(dv)))
   expect_true(all(dv$conf.low <= dv$conf.high | is.na(dv$conf.low)))
 })
+
+test_that("anchor-word topic pick: point est warns, bootstrap refit drops (no silent misalign)", {
+  skip_on_cran()
+  cc <- .ct_corpus()
+  fit <- stm(cc$docs, cc$vocab, K = 2L, content = ~ grp, content_time = ~ yr,
+             data = cc$meta, init.type = "Spectral", seed = 1L, verbose = FALSE)
+  lb <- fit$beta$logbeta; vocab <- fit$vocab
+  nomatch <- c("zzz1", "zzz2")   # not in the vocabulary -> zero overlap
+
+  # point estimate (warn = TRUE): warn + fall back to topic 1 (still returns)
+  expect_warning(k <- faSTM:::.pick_topic(lb, vocab, topic = NULL,
+                                          anchor_words = nomatch, warn = TRUE),
+                 "anchor_words")
+  expect_equal(k, 1L)
+  # bootstrap refit (warn = FALSE): error, so the caller's tryCatch drops the
+  # replicate instead of recording an arbitrary topic-1 trajectory into the CI
+  expect_error(faSTM:::.pick_topic(lb, vocab, topic = NULL,
+                                   anchor_words = nomatch, warn = FALSE),
+               "overlap")
+  # a matching anchor still resolves without warning/error
+  expect_silent(faSTM:::.pick_topic(lb, vocab, topic = NULL,
+                                    anchor_words = c("9", "10"), warn = TRUE))
+})

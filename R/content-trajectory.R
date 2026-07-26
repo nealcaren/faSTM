@@ -198,18 +198,25 @@ content_divergence <- function(object, groups = NULL, topic = NULL,
 }
 
 # Pick the target topic: an explicit `topic`, or the topic whose top-20 words best
-# overlap `anchor_words`. All-zero overlap silently resolves to topic 1 via
-# `which.max`, so warn when that happens (the point-estimate call; muted in the
-# bootstrap loop via `warn = FALSE`).
+# overlap `anchor_words`. Ranking uses the mean topic-word *probability* across
+# content cells -- the arithmetic mean of exp(logbeta), not the geometric mean that
+# averaging logbeta would give (which buries a word that is near-zero in any one
+# cell). All-zero overlap means topic identity is undefined: for the point estimate
+# (warn = TRUE) we warn and fall back to topic 1 so the user still gets an answer;
+# in a bootstrap refit (warn = FALSE) we error, so the caller's tryCatch drops the
+# replicate rather than letting an arbitrary (topic-1) trajectory pollute the CI.
 .pick_topic <- function(lb, vocab, topic, anchor_words, warn = TRUE) {
   if (!is.null(anchor_words)) {
-    avg <- Reduce(`+`, lb) / length(lb)
+    avg <- Reduce(`+`, lapply(lb, exp)) / length(lb)
     ov <- apply(avg, 1, function(r)
       sum(vocab[order(r, decreasing = TRUE)[1:20]] %in% anchor_words))
-    if (warn && max(ov) == 0)
+    if (max(ov) == 0) {
+      if (!warn)
+        stop("no `anchor_words` overlap any topic in this refit.", call. = FALSE)
       warning("no `anchor_words` matched any topic's top-20 words; defaulting to ",
               "topic 1 -- check `anchor_words` against the model vocabulary.",
               call. = FALSE)
+    }
     which.max(ov)
   } else if (!is.null(topic)) {
     as.integer(topic)

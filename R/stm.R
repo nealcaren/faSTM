@@ -83,6 +83,14 @@ stm <- function(documents, vocab, K,
   gamma.prior <- match.arg(gamma.prior)
   inference <- match.arg(inference)
   content_prior <- match.arg(content_prior)
+  ## Validate the content-prior scales in R so a bad value is a clear error here
+  ## rather than a Rust panic in the core (which asserts finite, positive scales).
+  if (!is.numeric(content_prior_var) || length(content_prior_var) != 1L ||
+      !is.finite(content_prior_var) || content_prior_var <= 0)
+    stop("`content_prior_var` must be a finite positive scalar.", call. = FALSE)
+  if (!is.numeric(content_smooth) || length(content_smooth) != 1L ||
+      !is.finite(content_smooth) || content_smooth < 0)
+    stop("`content_smooth` must be a finite non-negative scalar.", call. = FALSE)
   ## Content-deviation prior: "l2" (default, Gaussian ridge) or "l1" (sparse
   ## Laplace on the group/topic-by-group deviations, SAGE-style; rate
   ## 1/content_prior_var). L1 recovers sparse content contrasts an L2 prior cannot,
