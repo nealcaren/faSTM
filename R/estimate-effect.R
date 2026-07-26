@@ -48,7 +48,12 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
 
   K <- ncol(stmobj$theta)
   topics <- .formula_topics(formula, K)
-  fml_rhs <- formula; fml_rhs[[2L]] <- NULL          # ~ RHS (drop the topic LHS)
+  ## Reduce to the RHS. A two-sided `topics ~ rhs` drops its LHS; a one-sided
+  ## `~ rhs` (all topics, valid stm usage) is already RHS-only and must be left
+  ## alone -- deleting element 2 there would erase the RHS and yield a malformed
+  ## formula.
+  fml_rhs <- formula
+  if (length(fml_rhs) == 3L) fml_rhs[[2L]] <- NULL
   has_re <- length(.find_bars(fml_rhs)) > 0L         # any (term | group) ?
   if (has_re && !requireNamespace("lme4", quietly = TRUE))
     stop("random-effect terms `( | )` need the 'lme4' package.", call. = FALSE)
@@ -66,6 +71,27 @@ estimateEffect <- function(formula, stmobj, metadata = meta,
   w <- if (is.null(weights)) NULL else as.numeric(weights)[keep]
   cl <- if (is.null(cluster)) NULL else cluster[keep]
   X <- if (has_re) NULL else stats::model.matrix(mterms, mf)
+
+  ## Cluster-robust SEs need many clusters. With < 2 clusters the sandwich meat
+  ## collapses: the finite-sample factor ng/(ng-1) is 1/0 = Inf while the OLS score
+  ## sums to 0, so Inf*0 = NaN SEs; with G <= p the cluster covariance is
+  ## rank-deficient, so some coefficients' SEs are understated. Warn rather than
+  ## return silently degenerate uncertainty.
+  if (!is.null(cl) && !has_re) {
+    # count clusters the way `.ols`'s split() does -- NAs are dropped there, so an
+    # NA in `cl` must not inflate the count past the < 2 guard.
+    ng <- length(unique(cl[!is.na(cl)]))
+    p  <- ncol(X)
+    if (ng < 2L)
+      warning("cluster-robust SEs need at least 2 clusters; got ", ng,
+              ". The finite-sample factor ng/(ng-1) is undefined (1/0) so the meat ",
+              "and resulting SEs collapse to NaN; drop `cluster` or use a coarser ",
+              "grouping.", call. = FALSE)
+    else if (ng <= p)
+      warning("cluster-robust SEs have only ", ng, " clusters for ", p,
+              " coefficients (G <= p): the cluster covariance is rank-deficient, so ",
+              "some SEs are unreliable (understated).", call. = FALSE)
+  }
 
   if (uncertainty == "None") {
     draws <- list(stmobj$theta)

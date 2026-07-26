@@ -59,6 +59,20 @@ test_that("honest estimateEffect yields a coefficient per term per topic", {
   expect_true("(Intercept)" %in% rownames(s$tables[[1L]]))
 })
 
+test_that("one-sided estimateEffect formula covers all topics (RHS-only regression)", {
+  skip_if_not_built(); skip_if_not_installed("quanteda")
+  f <- make_fit(6L)
+  # `~ Party` with no LHS is valid stm usage: estimate over every topic. The RHS
+  # must survive formula reduction -- an earlier bug deleted element 2 of the
+  # one-sided formula, erasing the RHS and crashing findbars ("subscript out of
+  # bounds"). Guard it: the fit must run and cover all K topics.
+  eff <- estimateEffect(~ Party, f$fit, metadata = f$corpus$meta,
+                        nsims = 20L, seed = 1L)
+  s <- summary(eff)
+  expect_length(s$tables, 6L)
+  expect_true(any(grepl("Party", rownames(s$tables[[1L]]))))
+})
+
 test_that("search_k returns diagnostics per K and a tidy long form", {
   skip_if_not_built(); skip_if_not_installed("quanteda")
   dfmat <- quanteda::dfm_trim(
@@ -414,4 +428,21 @@ test_that("estimateEffect weights/cluster align by position (non-sequential meta
   expect_s3_class(eff_cl, "faSTM_effect")
   # weights actually change the estimate vs unweighted
   expect_false(isTRUE(all.equal(eff_w$coefficients[[1]]$est, eff_u$coefficients[[1]]$est)))
+})
+
+test_that("estimateEffect warns on too-few clusters for cluster-robust SEs", {
+  skip_on_cran()
+  skip_if_not_built()
+  f <- make_fit(6L)
+  n <- nrow(f$corpus$meta)
+  # a single cluster: the CR1 sandwich meat collapses -> spuriously ~0 SEs
+  expect_warning(
+    estimateEffect(1:6 ~ Party, f$fit, metadata = f$corpus$meta,
+                   cluster = rep(1L, n), nsims = 5L, seed = 1L),
+    "at least 2 clusters")
+  # G <= p: the cluster covariance is rank-deficient -> understated SEs
+  expect_warning(
+    estimateEffect(1:6 ~ Party, f$fit, metadata = f$corpus$meta,
+                   cluster = rep(1:2, length.out = n), nsims = 5L, seed = 1L),
+    "rank-deficient")
 })

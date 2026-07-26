@@ -14,6 +14,7 @@ use extendr_api::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use topica_core::ctm::{fit_ctm, infer_theta, GammaPrior};
+use topica_core::spectral::DEFAULT_PROJ_THRESHOLD;
 
 /// Run `f` on a scoped rayon pool of `n` workers (mirrors topica's
 /// `run_with_threads`). `n < 1` uses the global pool (all cores). The parallel
@@ -55,6 +56,11 @@ fn fit_stm(
     num_features: i32,
     content_groups: Nullable<Vec<i32>>,
     num_groups: i32,
+    content_time_num_base: i32,
+    content_time_num_periods: i32,
+    content_time_smooth: f64,
+    content_prior_var: f64,
+    content_l1: f64,
     init_spectral: bool,
     init_beta: Nullable<Vec<f64>>,
     gamma_l1_alpha: Nullable<f64>,
@@ -93,6 +99,21 @@ fn fit_stm(
     let content_ref: Option<(&[usize], usize)> =
         groups_owned.as_deref().map(|g| (g, num_groups as usize));
 
+    // Ordered-time content axis: the R layer saturates the group axis as
+    // `base*num_periods + period`; a random walk of precision `content_time_smooth`
+    // (1/tau^2) then ties adjacent periods. Inactive (bit-exact SAGE) unless there
+    // are >= 2 periods and a positive smoothing strength.
+    let content_time_rw: Option<(usize, usize, f64)> =
+        if content_time_num_periods >= 2 && content_time_smooth > 0.0 {
+            Some((
+                content_time_num_base as usize,
+                content_time_num_periods as usize,
+                content_time_smooth,
+            ))
+        } else {
+            None
+        };
+
     let gamma_prior = match gamma_l1_alpha {
         Nullable::NotNull(a) => GammaPrior::L1 { alpha: a },
         Nullable::Null => GammaPrior::Pooled,
@@ -123,11 +144,15 @@ fn fit_stm(
                 sigma_shrink,
                 prevalence_ref,
                 content_ref,
+                content_time_rw,
+                content_prior_var,
+                content_l1,
                 init_spectral,
                 init_beta_ref,
                 gamma_prior,
                 /* keep_nu = */ true, // need ν for the method-of-composition posterior
                 diagonal,
+                DEFAULT_PROJ_THRESHOLD, // spectral proj threshold: stm parity (topica#542)
                 &mut rng,
             )
         }),

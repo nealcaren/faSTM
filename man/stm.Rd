@@ -11,6 +11,10 @@ stm(
   prevalence = NULL,
   content = NULL,
   data = NULL,
+  content_time = NULL,
+  content_smooth = 1,
+  content_prior = c("l2", "l1"),
+  content_prior_var = 0.5,
   max.em.its = 500L,
   emtol = 1e-05,
   init.type = c("Spectral", "Random", "LDA", "Custom"),
@@ -46,6 +50,30 @@ or a factor; the SAGE content covariate. \code{data} supplies the variable.}
 
 \item{data}{A data.frame of document metadata (the \code{meta} from
 \code{\link[stm:prepDocuments]{stm::prepDocuments()}}), aligned to \code{documents}.}
+
+\item{content_time}{An optional ordered (time) content covariate: a formula
+(e.g. \code{~ year}) or a factor whose sorted levels give the period order. Its
+period-by-period content deviations, crossed with \code{content}, are tied by a
+first-order random walk so adjacent periods borrow strength. This is the
+temporal generalization of the SAGE content covariate: it lets a group's
+wording of a topic drift smoothly over time. Pass sortable period labels
+(years, zero-padded strings) so the ordering is chronological. \code{NULL}
+(default) fits the ordinary static content model.}
+
+\item{content_smooth}{Random-walk smoothing strength for \code{content_time},
+\code{1/tau^2}. Larger pools adjacent periods harder (toward static content);
+\code{0} recovers the fully saturated content factor (independent per-period
+cells). Ignored when \code{content_time} is \code{NULL}.}
+
+\item{content_prior}{Prior on the SAGE content deviations: \code{"l2"} (default,
+Gaussian ridge) or \code{"l1"} (sparse Laplace on the group and topic-by-group
+deviation blocks, like \code{stm}'s sparse content model). \code{"l1"} recovers sparse
+content contrasts an L2 prior cannot -- more accurate when only a few words
+distinguish the groups (the common case) -- at some extra fit time.}
+
+\item{content_prior_var}{Content-prior scale. Under \code{"l2"} it is the Gaussian
+variance on the deviations (smaller shrinks harder); under \code{"l1"} the sparsity
+rate is \code{1/content_prior_var}. Only used when a content covariate is supplied.}
 
 \item{max.em.its}{Maximum EM iterations (batch) / epochs (svi).}
 
