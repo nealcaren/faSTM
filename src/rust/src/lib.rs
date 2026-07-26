@@ -14,6 +14,7 @@ use extendr_api::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use topica_core::ctm::{fit_ctm, infer_theta, GammaPrior};
+use topica_core::spectral::DEFAULT_PROJ_THRESHOLD;
 
 /// Run `f` on a scoped rayon pool of `n` workers (mirrors topica's
 /// `run_with_threads`). `n < 1` uses the global pool (all cores). The parallel
@@ -151,6 +152,7 @@ fn fit_stm(
                 gamma_prior,
                 /* keep_nu = */ true, // need ν for the method-of-composition posterior
                 diagonal,
+                DEFAULT_PROJ_THRESHOLD, // spectral proj threshold: stm parity (topica#542)
                 &mut rng,
             )
         }),
